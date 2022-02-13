@@ -1,6 +1,6 @@
 from unicodedata import name
 from django.http import HttpRequest
-from django.contrib.auth import authenticate, login as authLogin
+from django.contrib.auth import authenticate, login as auth_login
 from django.shortcuts import redirect, render
 
 
@@ -16,7 +16,7 @@ def login(request: HttpRequest):
         if user is None:
             return render(request, 'login.html', {'errors': ['Invalid credentials']})
         
-        authLogin(request, user)
+        auth_login(request, user)
         return redirect('/')
     
     return render(request, 'login.html')

@@ -12,9 +12,9 @@ def register(request: HttpRequest, mailer: Mailer = Provide[Container.mailer]):
         return redirect('/')
 
     if request.method == 'POST':
-        registerForm = RegisterForm(request.POST)
-        if registerForm.is_valid():
-            player: Player = registerForm.save(commit=False)
+        register_form = RegisterForm(request.POST)
+        if register_form.is_valid():
+            player: Player = register_form.save(commit=False)
             player.set_password(player.password)
             player.save()
 
@@ -23,7 +23,7 @@ def register(request: HttpRequest, mailer: Mailer = Provide[Container.mailer]):
 
             return redirect('/login')
         else:
-            print(registerForm.errors)
-            return render(request, 'register.html', {'errors': registerForm.errors.items()})
+            print(register_form.errors)
+            return render(request, 'register.html', {'errors': register_form.errors.items()})
 
     return render(request, 'register.html')

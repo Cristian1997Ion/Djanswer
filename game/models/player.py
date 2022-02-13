@@ -19,6 +19,22 @@ class Player(AbstractBaseUser):
         RegexValidator(r'^.*[0-9]+.*$', 'At least one digit must pe present.')
     ])
 
+    room: Room = models.ForeignKey(Room, on_delete=models.DO_NOTHING, null=True, blank=False, default=None)
+
     USERNAME_FIELD = 'username'
     EMAIL_FIELD = 'email'
     objects = UserManager()
+
+    def join_room(self, room: Room):
+        if not self.room is None:
+            raise Exception('Player is already in a room!')
+
+        self.room = room
+        self.save()
+    
+    def leave_room(self):
+        if self.room is None:
+            return
+        
+        self.room = None
+        self.save()

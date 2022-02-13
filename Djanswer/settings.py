@@ -50,9 +50,10 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django_bootstrap_icons',
     'django.contrib.staticfiles',
     'channels',
-    'game'
+    'game',
 ]
 
 MIDDLEWARE = [
