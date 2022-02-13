@@ -13,9 +13,10 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.views.generic import RedirectView
 from django.urls import path
 from django.conf.urls import include
 
 urlpatterns = [
-    path('game/', include('game.urls'))
+    path('', include('game.urls'))
 ]

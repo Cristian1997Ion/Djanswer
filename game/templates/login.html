@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Djanswer - Register{% endblock %}
+{% block title %}Djanswer - Login{% endblock %}
 
 {% block topbar %}<!-- no topbar -->{% endblock topbar %}
 
@@ -14,22 +14,17 @@
     <div class="row justify-content-center mb-3">
         <div class="col-md-4 card">
             <div class="card-body">
-                <div class="card-title h2">Sign in?</div>
+                <div class="card-title h2">Log in?</div>
                 <hr>
                 <div id="error-box" class="{% if not errors %}d-none{% endif %} alert alert-danger">
                     <ul id="error-list">
-                        {% for field, error in errors %}
-                            <li>{{ field }}: {{ error|escape }}</li>
+                        {% for error in errors %}
+                            <li>{{ error }}</li>
                         {% endfor %}
                     </ul>
                 </div>
-                <form id="registerForm" action="" method="post">
+                <form id="loginForm" action="" method="post">
                     {% csrf_token %}
-                    <div class="mb-3">
-                      <label for="email" class="form-label">Email address</label>
-                      <input type="email" class="form-control" id="email" aria-describedby="emailHelp" name="email" required>
-                      <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
-                    </div>
                     <div class="mb-3">
                         <label for="username" class="form-label">Username</label>
                         <input type="username" class="form-control" id="username" name="username" required>
@@ -37,12 +32,8 @@
                     <div class="mb-3">
                       <label for="password" class="form-label">Password</label>
                       <input type="password" class="form-control" id="password" name="password">
+                      <a href="/register"><small>I need an account!</small></a>
                     </div>
-                    <div class="mb-3">
-                        <label for="confirmPassword" class="form-label">Confirm password</label>
-                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password">
-                        <a href="/login"><small>I have an account!</small></a>
-                      </div>
                     <button type="submit" class="btn btn-primary w-100">Yes, please! </button>
                   </form>
             </div>

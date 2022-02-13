@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.validators import MinLengthValidator, RegexValidator
 
 from game.models.room import Room
@@ -21,3 +21,4 @@ class Player(AbstractBaseUser):
 
     USERNAME_FIELD = 'username'
     EMAIL_FIELD = 'email'
+    objects = UserManager()
