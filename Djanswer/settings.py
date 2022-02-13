@@ -103,6 +103,7 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTH_USER_MODEL = 'game.Player'
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
+LOGIN_URL = '/login'
 
 
 # Internationalization
