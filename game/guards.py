@@ -9,7 +9,7 @@ def no_room_guard(function):
     """
     def guard(request: HttpRequest, *args, **kwargs):
         if request.user.room:
-            return redirect(f'/room/{request.user.room.code}')
+            return redirect('room_lobby', room_code=request.user.room.code)
 
         return function(request, *args, **kwargs)
     return guard
@@ -24,7 +24,7 @@ def exact_room_guard(function):
             return redirect('/')
         
         if request.user.room.code != kwargs['room_code']:
-            return redirect(f'/room/{request.user.room.code}')
+            return redirect('room_lobby', room_code=request.user.room.code)
 
         return function(request, *args, **kwargs)
     return guard

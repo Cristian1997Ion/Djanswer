@@ -10,7 +10,7 @@
             <div class="card-body">
                 <div class="card-title d-flex justify-content-between">
                     <span class="h2">Join a room?</span>
-                    <a class="btn btn-outline-primary btn-lg" href="/"><b><</b></a>
+                    <a class="btn btn-outline-primary btn-lg" href="{% url 'home' %}"><b><</b></a>
                 </div>
                 <hr>
                 <div id="error-box" class="{% if not errors %}d-none{% endif %} alert alert-danger">

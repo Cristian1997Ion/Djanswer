@@ -19,6 +19,6 @@ def join_room(request: HttpRequest):
             return render(request, 'join_room.html', {'errors': ['This room is full.'], 'code': request.POST.get('code')})
 
         player.join_room(room)
-        return redirect(f'/room/{room.code}')
+        return redirect('room_lobby', room_code=room.code)
 
     return render(request, 'join_room.html')

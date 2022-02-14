@@ -6,4 +6,4 @@ from django.shortcuts import redirect
 def logout(request: HttpRequest):
     auth_logout(request)
 
-    return redirect('/')
+    return redirect('home')

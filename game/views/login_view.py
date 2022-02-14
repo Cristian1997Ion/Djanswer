@@ -17,6 +17,6 @@ def login(request: HttpRequest):
             return render(request, 'login.html', {'errors': ['Invalid credentials']})
         
         auth_login(request, user)
-        return redirect('/')
+        return redirect('home')
     
     return render(request, 'login.html')

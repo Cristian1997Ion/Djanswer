@@ -21,7 +21,7 @@ def register(request: HttpRequest, mailer: Mailer = Provide[Container.mailer]):
             # Firewall smtp timeout on my machine...
             #mailer.send([player.email], 'Welcome to Djanswer!', f'Hi, {player.username}! You can now start playing Djanswer!')
 
-            return redirect('/login')
+            return redirect('login')
         else:
             print(register_form.errors)
             return render(request, 'register.html', {'errors': register_form.errors.items()})

@@ -18,7 +18,7 @@ def create_room(request: HttpRequest):
             room.save()
             player.join_room(room)
 
-            return redirect(f'/room/{room.code}')
+            return redirect('room_lobby', room_code=room.code)
         else:
             return render(request, 'create_room.html', {'errors': form.errors.items(), 'code': request.POST.get('code')})
 
