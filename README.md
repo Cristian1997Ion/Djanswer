@@ -13,3 +13,4 @@ The player with the most points win!
 3. run: pip install -r requirements
 4. run: python manage.py migrate
 5. run: python manage.py runserver
+6. start a local redis server (docker run -p 6379:6379 -d redis:5)
