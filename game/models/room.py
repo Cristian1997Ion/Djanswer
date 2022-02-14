@@ -1,6 +1,7 @@
-from typing import Final, List, TYPE_CHECKING, Set
+from typing import Final, TYPE_CHECKING
 from django.db import models
 from django.core.validators import RegexValidator
+from django.db.models.manager import BaseManager
 
 if TYPE_CHECKING:
     from . import Player
@@ -19,5 +20,5 @@ class Room(models.Model):
     secret = models.CharField(max_length=4, validators=[RegexValidator(r'^[0-9+]', 'Only digit characters.')], blank=True, default='')
     
     @property
-    def players(self) -> Set['Player']:
+    def players(self) -> BaseManager:
         return self.player_set

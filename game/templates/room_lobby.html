@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Djanswer - Join Room{% endblock %}
+
+
+{% block topbar %}
+    <h2 class="text-light">Djanswer</h2>
+{% endblock topbar %}
+    
+
+{% block content %}
+    {% load bootstrap_icons %}
+    <br>
+    
+    <div class="row" id="players">
+        {% for player in players %}
+        <div class="col-3 mb-3">
+            {% include 'components/user_card.html' with  username=player.username %}
+        </div>
+    {% endfor %}
+    </div>    
+
+    <script>
+        const roomCode = '{{ room.code }}';
+        const currentUser = '{{ user.username }}';
+
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/room/'
+            + roomCode
+            + '/lobby'
+        );
+
+        chatSocket.onopen = function () {
+            chatSocket.send(JSON.stringify({
+                'type': 'connected'
+            }));
+        }
+
+        chatSocket.onmessage = function(e) {
+            const message = JSON.parse(e.data);
+
+            console.log(message);
+            if (message.type === 'connected' && message.user != currentUser) {
+                playerConnected(message.user);
+                return;
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        function playerConnected(username) {
+            console.log('ok')
+            fetch('/components/user_card?username=' + username).then(function (response) {
+                // The API call was successful!
+                return response.text();
+            }).then(function (html) {
+                const col = document.createElement('div');
+                col.classList.add('col-3', 'mb-3');
+                col.innerHTML = html;
+                document.getElementById('players').append(col);
+            }).catch(function (err) {
+                // There was an error
+                console.warn('Something went wrong.', err);
+            });
+        }
+    </script>
+{% endblock %}

@@ -5,3 +5,5 @@ from .home_view import home
 from .create_room_view import create_room
 from .room_lobby_view import room_lobby
 from .join_room_view import join_room
+
+from .components import user_card
