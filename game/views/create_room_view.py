@@ -2,15 +2,15 @@ import uuid
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
 from game.forms.create_room_form import CreateRoomForm
+from game.guards import no_room_guard
+from django.contrib.auth.decorators import login_required
 from ..models import Room, Player
 
 
-
+@login_required
+@no_room_guard
 def create_room(request: HttpRequest):
     player: 'Player' = request.user
-    if player.room is None:
-        return redirect(f'/room/{request.user.room.code}/')
-
     if request.method == 'POST':
         form = CreateRoomForm(request.POST)
         if form.is_valid():
