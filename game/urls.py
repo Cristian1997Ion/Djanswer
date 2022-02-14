@@ -1,9 +1,4 @@
-from unicodedata import name
 from django.urls import path
-from game.views.create_room_view import create_room
-
-from game.views.logout_view import logout
-
 from . import views
 
 urlpatterns = [
@@ -12,5 +7,6 @@ urlpatterns = [
     path('register/', views.register, name='register_view'),
     path('logout', views.logout, name='logout_view'),
     path('create/room/', views.create_room, name='create_room_view'),
-    path('room/<room_code>/', views.room_lobby, name='room_lobby')
+    path('room/<room_code>/', views.room_lobby, name='room_lobby'),
+    path('join/room/', views.join_room, name='join_room_view'),
 ]

@@ -12,7 +12,7 @@
                     <a class="btn btn-lg btn-success w-100 mb-3" href="/room/{{ user.room.code }}">Rejoin room #{{ user.room.code }}</a>
                 {% else %}
                     <a class="btn btn-lg btn-primary w-100 mb-3" href="/create/room">Create room</a>
-                    <button class="btn btn-lg btn-warning w-100 mb-3 text-light">Join room</button>
+                    <a class="btn btn-lg btn-warning w-100 mb-3 text-light" href="/join/room">Join room</a>
                 {% endif %}
                 <button class="btn btn-lg btn-danger w-100 mb-2" id="logoutButton">Log out</button>
             </div>

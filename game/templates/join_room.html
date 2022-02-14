@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Djanswer - Join Room{% endblock %}
+
+{% block content %}
+    {% load bootstrap_icons %}
+    <br>
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-4 card">
+            <div class="card-body">
+                <div class="card-title d-flex justify-content-between">
+                    <span class="h2">Join a room?</span>
+                    <a class="btn btn-outline-primary btn-lg" href="/"><b><</b></a>
+                </div>
+                <hr>
+                <div id="error-box" class="{% if not errors %}d-none{% endif %} alert alert-danger">
+                    <ul id="error-list">
+                        {% for error in errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <form id="joinRoomForm" action="" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Room code</label>
+                        <input type="text" class="form-control" id="code" name="code" value="{{ code }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="secret" class="form-label">
+                            Secret (optional)
+                            <span data-bs-toggle="tooltip" title="A 4 digit code meant to keep others away">
+                                {% bs_icon 'patch-question-fill' %}
+                            </span>
+                        </label>
+                        <input type="secret" class="form-control" id="secret" name="secret" placeholder="eg: 1234">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Yes, please!</button>
+                  </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('code').addEventListener('input', function (event) {
+            event.target.value = event.target.value.toLocaleUpperCase()
+            if (event.target.value.length > 6) {
+                event.target.value = event.target.value.slice(0, 6);
+            }
+
+            
+            if (! event.target.value.charAt(event.target.value.length - 1 ).match( /^[A-Za-z0-9]$/)) {
+                event.target.value = event.target.value.slice(0, event.target.value.length - 1);
+            }
+        });
+
+        document.getElementById('secret').addEventListener('input', function (event) {
+            if (event.target.value.length > 4) {
+                event.target.value = event.target.value.slice(0, 4);
+            }
+
+            if (! event.target.value.charAt(event.target.value.length - 1).match( /^[0-9]$/)) {
+                event.target.value = event.target.value.slice(0, event.target.value.length - 1);
+            }
+        });
+    </script>
+{% endblock %}

@@ -1,4 +1,4 @@
-from typing import List, TYPE_CHECKING, Set
+from typing import Final, List, TYPE_CHECKING, Set
 from django.db import models
 from django.core.validators import RegexValidator
 
@@ -6,6 +6,8 @@ if TYPE_CHECKING:
     from . import Player
 
 class Room(models.Model):
+    MAX_PLAYERS: Final = 12
+
     code = models.CharField(
         max_length=6,
         unique=True,
