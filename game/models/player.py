@@ -19,7 +19,7 @@ class Player(AbstractBaseUser):
         RegexValidator(r'^.*[0-9]+.*$', 'At least one digit must pe present.')
     ])
 
-    room: Room = models.ForeignKey(Room, on_delete=models.DO_NOTHING, null=True, blank=False, default=None)
+    room: Room = models.ForeignKey(Room, related_name='players', on_delete=models.DO_NOTHING, null=True, blank=False, default=None)
 
     USERNAME_FIELD = 'username'
     EMAIL_FIELD = 'email'
