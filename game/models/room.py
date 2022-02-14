@@ -14,7 +14,7 @@ class Room(models.Model):
         validators=[RegexValidator(r'^[a-zA-Z]*', 'Only alphanumerical characters.')]
     )
 
-    secret = models.CharField(max_length=4, validators=[RegexValidator(r'^[0-9+]', 'Only digit characters.')])
+    secret = models.CharField(max_length=4, validators=[RegexValidator(r'^[0-9+]', 'Only digit characters.')], blank=True, default='')
     
     @property
     def players(self) -> Set['Player']:

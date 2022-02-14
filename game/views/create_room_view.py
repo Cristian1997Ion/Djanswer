@@ -20,6 +20,6 @@ def create_room(request: HttpRequest):
 
             return redirect(f'/room/{room.code}')
         else:
-            return render(request, 'create_room.html', {'errors': form.errors.items(), 'code': request.POST.code})
+            return render(request, 'create_room.html', {'errors': form.errors.items(), 'code': request.POST.get('code')})
 
     return render(request, 'create_room.html', {'code': uuid.uuid4().hex[:6].upper()})
