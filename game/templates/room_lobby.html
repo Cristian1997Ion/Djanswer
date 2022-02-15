@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Djanswer - Join Room{% endblock %}
+{% block title %}Djanswer - Room #{{ roomCode }}{% endblock %}
 
 
 {% block topbar %}
@@ -11,61 +11,167 @@
 {% block content %}
     {% load bootstrap_icons %}
     <br>
-    
-    <div class="row" id="players">
-        {% for player in players %}
-        <div class="col-3 mb-3">
-            {% include 'components/user_card.html' with  username=player.username %}
+    <div class="row" id="game">
+        <div class="col-lg-3 card mb-2 mb-lg-0">
+            <div class="card-body">
+                {% if user == room.owner %}
+                    <button class="btn btn-success btn-lg w-100" id="startButton">START</button>
+                {% endif %}
+                <hr>
+                <div class="card-title h2 d-flex justify-content-between">
+                    <b class="align-self-center">Players</b>
+                    <span  class="expandable-arrows d-lg-none">
+                        <i class="align-self-center" id="expandPlayers">
+                            {% bs_icon 'arrow-down-circle-fill' size='1.2em' %}
+                        </i>
+                        <i class="d-none align-self-center" data-toggle="Collapse" title="Expand" id="collapsePlayers">
+                            {% bs_icon 'arrow-up-circle-fill' size='1.2em' %}
+                        </i>
+                    </span>
+                </div>
+                <div class="overflow-scroll d-none d-lg-block" style="height: 75vh" id="players">
+                    {% for player in players %}
+                    <div class="mb-3">
+                        {% include 'components/user_card.html' with  username=player.username %}
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
         </div>
-    {% endfor %}
+        <div class="col-lg card ms-lg-2" style="min-height: 75vh;">
+            <div class="card-body" class="message-box">
+                <textarea class="w-100 h-75 text-dark fw-bolder" disabled style="resize: none;" id="chat"></textarea>
+                <hr class="m-0 mb-1">
+                <div class="input-group h-25">
+                    <textarea class="form-control" style="resize: none; font-size: 1.1em" placeholder="Your message here..." id="messageText"></textarea>
+                    <button class="btn btn-outline-secondary ps-5 pe-5" type="button" id="messageButton">{% bs_icon 'send-fill' size='2em' %}</button>
+                  </div>
+            </div>
+        </div>
     </div>    
 
     <script>
         const roomCode = '{{ room.code }}';
         const currentUser = '{{ user.username }}';
 
-        const chatSocket = new WebSocket(
-            'ws://'
-            + window.location.host
-            + '/ws/room/'
-            + roomCode
-            + '/lobby'
-        );
+        {// socket functions        
+            const chatSocket = new WebSocket(
+                'ws://'
+                + window.location.host
+                + '/ws/room/'
+                + roomCode
+                + '/lobby'
+            );
 
-        chatSocket.onopen = function () {
-            chatSocket.send(JSON.stringify({
-                'type': 'connected'
-            }));
-        }
-
-        chatSocket.onmessage = function(e) {
-            const message = JSON.parse(e.data);
-
-            console.log(message);
-            if (message.type === 'connected' && message.user != currentUser) {
-                playerConnected(message.user);
-                return;
+            chatSocket.onopen = function () {
+                chatSocket.send(JSON.stringify({
+                    'type': 'connected'
+                }));
             }
-        };
 
-        chatSocket.onclose = function(e) {
-            console.error('Chat socket closed unexpectedly');
-        };
+            chatSocket.onmessage = function(e) {
+                const message = JSON.parse(e.data);
 
-        function playerConnected(username) {
-            console.log('ok')
-            fetch('/components/user_card?username=' + username).then(function (response) {
-                // The API call was successful!
-                return response.text();
-            }).then(function (html) {
-                const col = document.createElement('div');
-                col.classList.add('col-3', 'mb-3');
-                col.innerHTML = html;
-                document.getElementById('players').append(col);
-            }).catch(function (err) {
-                // There was an error
-                console.warn('Something went wrong.', err);
-            });
+                console.log(message);
+                if (message.type === 'connected' && message.user != currentUser) {
+                    playerConnected(message.user);
+                } else if (message.type === 'chat_message') {
+                    displayMessage(message.text, message.user)
+                }
+            };
+
+            chatSocket.onclose = function(e) {
+                document.getElementById('players').innerHTML = '';
+                console.error('Chat socket closed unexpectedly');
+            };
+
+            function sendMessage(message) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'chat_message',
+                    'text': message
+                }));
+            }
         }
+
+        { // chat functions....
+            document.querySelector('.expandable-arrows').addEventListener('click', function (event) {
+                const playersBox = document.querySelector('#players');
+                if (playersBox.classList.contains('d-none')) {
+                    playersBox.classList.add('fade-in-down')
+                    playersBox.classList.remove('d-none');
+                    document.querySelector('#expandPlayers').classList.add('d-none');
+                    document.querySelector('#collapsePlayers').classList.remove('d-none');
+                } else {
+                    playersBox.classList.add('d-none');
+                    event.target.classList.replace('arrow-up-circle-fill','arrow-down-circle-fill');
+                    document.querySelector('#expandPlayers').classList.remove('d-none');
+                    document.querySelector('#collapsePlayers').classList.add('d-none');
+                }
+            })
+
+            document.querySelector('#messageButton').onclick = function(e) {
+                const messageInput = document.querySelector('#messageText');
+                sendMessage(messageInput.value);
+                messageInput.value = '';
+            };
+
+            function playerConnected(username) {
+                fetch('/components/user_card?username=' + username).then(function (response) {
+                    // The API call was successful!
+                    return response.text();
+                }).then(function (html) {
+                    const col = document.createElement('div');
+                    col.classList.add('mb-3');
+                    col.innerHTML = html;
+                    document.getElementById('players').append(col);
+                    displayMessage(username + ' has (re)connected to the chat....')
+                }).catch(function (err) {
+                    // There was an error
+                    console.warn('Something went wrong.', err);
+                });
+            }
+
+            function displayMessage(message, user=null) {
+                document.querySelector('#chat').value += (user ? user + ': ' : '') + message  + String.fromCharCode(13)
+            }
+        }
+
+        { // start game
+            function startCountdown() {
+                this.classList.replace('btn-success', 'btn-outline-danger');
+                this.innerHTML = 'CANCEL :<span id="startCountdown">'+ seconds +'</span>:';
+
+                seconds = 5;
+                countdownInterval = setInterval(countdown, 1000);
+                this.removeEventListener('click', startCountdown);
+                this.addEventListener('click', stopCountdown);
+            }
+
+            function stopCountdown() {
+                this.classList.replace('btn-outline-danger', 'btn-success')
+                this.innerHTML = 'START';
+                this.removeEventListener('click', stopCountdown);
+                this.addEventListener('click', startCountdown);
+                clearInterval(countdownInterval);
+            }
+
+            function countdown() {
+                seconds = seconds - 1;
+                document.querySelector('#startCountdown').innerHTML = seconds;
+                if (seconds == 0) {
+                    clearInterval(countdownInterval);
+                    const button = document.querySelector('#startButton');
+                    button.classList.replace('btn-outline-danger', 'btn-warning');
+                    button.disabled = true;
+                    button.innerHTML = 'LOADING...'
+                    button.removeEventListener('click', stopCountdown);
+                }
+            }
+
+            var countdownInterval;
+            var seconds = 5;
+            document.querySelector('#startButton').addEventListener('click', startCountdown);
+        }
+
     </script>
 {% endblock %}

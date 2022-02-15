@@ -18,6 +18,8 @@ class Room(models.Model):
     )
 
     secret = models.CharField(max_length=4, validators=[RegexValidator(r'^[0-9+]', 'Only digit characters.')], blank=True, default='')
+
+    owner = models.OneToOneField(to='Player', on_delete=models.DO_NOTHING, related_name='owned_room')
     
     @property
     def players(self) -> BaseManager:

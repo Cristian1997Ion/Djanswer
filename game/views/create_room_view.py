@@ -15,6 +15,7 @@ def create_room(request: HttpRequest):
         form = CreateRoomForm(request.POST)
         if form.is_valid():
             room: Room = form.save(commit=False)
+            room.owner = player
             room.save()
             player.join_room(room)
 

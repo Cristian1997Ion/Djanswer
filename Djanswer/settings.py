@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 import environ
 import os
-from django_query_profiler.settings import *
-
 env = environ.Env(
     # set casting, default value
     DEBUG               = (bool, False),
@@ -55,7 +53,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'channels',
     'game',
-    'django_query_profiler' if DEBUG else ''
 ]
 
 MIDDLEWARE = [
@@ -67,9 +64,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
-if DEBUG:
-    MIDDLEWARE.append('django_query_profiler.client.middleware.QueryProfilerMiddleware')
 
 ROOT_URLCONF = 'Djanswer.urls'
 
@@ -97,7 +91,7 @@ WSGI_APPLICATION = 'Djanswer.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django_query_profiler.django.db.backends.sqlite3' if DEBUG else 'django.db.backends.sqlite3',
+        'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }

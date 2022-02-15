@@ -18,6 +18,5 @@ from django.urls import path
 from django.conf.urls import include
 
 urlpatterns = [
-    path('', include('game.urls')),
-    path('profiler/', include('django_query_profiler.client.urls'))
+    path('', include('game.urls'))
 ]
