@@ -6,5 +6,3 @@ from .create_room_view import create_room
 from .room_lobby_view import room_lobby
 from .join_room_view import join_room
 from .room_game_view import room_game
-
-from .components import user_card

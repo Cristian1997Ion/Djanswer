@@ -15,8 +15,9 @@
         <div class="col-lg-3 card mb-2 mb-lg-0">
             <div class="card-body">
                 {% if user == room.owner %}
-                    <button class="btn btn-success btn-lg w-100" id="startButton">START</button>
+                    <button class="btn btn-success btn-lg w-100 mb-1" id="startButton">START</button>
                 {% endif %}
+                <button class="btn btn-outline-secondary btn-lg w-100" id="leaveButton">LEAVE</button>
                 <hr>
                 <div class="card-title h2 d-flex justify-content-between">
                     <b class="align-self-center">Players</b>
@@ -30,11 +31,6 @@
                     </span>
                 </div>
                 <div class="overflow-scroll d-none d-lg-block" style="height: 75vh" id="players">
-                    {% for player in players %}
-                    <div class="mb-3" id="player_{{ player.username }}">
-                        {% include 'components/user_card.html' with  username=player.username %}
-                    </div>
-                {% endfor %}
                 </div>
             </div>
         </div>
@@ -48,15 +44,30 @@
                   </div>
             </div>
         </div>
-    </div>    
+    </div>  
+    <div id="userCardTemplate" class="d-none">
+        <div class="mb-3">
+            <div class="card h-100 bg-dark text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <div class="card_username"></div>
+                    </h5>
+                </div>
+            </div> 
+        </div> 
+    </div>
 
     <script>
         const roomCode = '{{ room.code }}';
-        const currentUser = '{{ user.username }}';
+        const currentPlayer = '{{ user.username }}';
+        const owner = '{{ room.owner.username }}';
 
         {// socket functions        
-            const chatSocket = new WebSocket('{{ socketUrl }}');
+            const socketUrl = 
+                ('ws://' + location.host + '/ws/room/' + roomCode + '/lobby') +
+                (currentPlayer === owner ? '/owner' : '');
 
+            const chatSocket = new WebSocket(socketUrl);
             chatSocket.onopen = function () {
                 chatSocket.send(JSON.stringify({
                     'type': 'connected'
@@ -65,12 +76,47 @@
 
             chatSocket.onmessage = function(e) {
                 const message = JSON.parse(e.data);
-                if (message.type === 'player_connected' && message.user != currentUser) {
-                    playerConnected(message.user);
-                } else if (message.type === 'chat_message_received') {
-                    displayMessage(message.text, message.user);
-                } else if (message.type === 'game_started') {
+                if (message.type === 'connected') {
+                    // you connected
+                    for (const username of message.players) {
+                        displayPlayerInList(username);
+                    }
+                    return;
+                }  
+                
+                if (message.type === 'player_connected' && message.player != currentPlayer) {
+                    // another player has connected
+                    playerConnected(message.player);
+                    return;
+                }
+                
+                if (message.type === 'player_left') {
+                    // someone left
+                    if (message.player === currentPlayer) {
+                        location.replace('/');
+                    }
+
+                    displayMessage(message.player + ' left the room');
+                    removePlayerFromList(message.player)
+                    return;
+                } 
+
+                if (message.type === 'room_deleted') {
+                    alert('The room is no longer available.');
+                    location.replace('/');
+                    return;
+                } 
+                
+                if (message.type === 'chat_message_received') {
+                    // a message was received (can be from yourself too)
+                    displayMessage(message.text, message.player);
+                    return;
+                }
+
+                if (message.type === 'game_started') {
+                    // the owner started the game
                     location.replace('{% url "room_game" room_code=room.code %}');
+                    return;
                 }
             };
 
@@ -89,9 +135,13 @@
             function startGame() {
                 chatSocket.send(JSON.stringify({'type': 'start_game'}))
             }
+
+            function leaveRoom() {
+                chatSocket.send(JSON.stringify({'type': 'left'}))
+            }
         }
 
-        { // chat functions....
+        { // lobby functions....
             document.querySelector('.expandable-arrows').addEventListener('click', function (event) {
                 const playersBox = document.querySelector('#players');
                 if (playersBox.classList.contains('d-none')) {
@@ -107,32 +157,44 @@
                 }
             })
 
-            document.querySelector('#messageButton').onclick = function(e) {
+            document.querySelector('#messageButton').addEventListener('click', function() {
                 const messageInput = document.querySelector('#messageText');
                 sendMessage(messageInput.value);
                 messageInput.value = '';
-            };
+            });
 
-            function playerConnected(username) {
-                if (document.querySelector('#player_' + username)) {
-                    displayMessage(username + ' has reconnected to the chat....')
+            document.querySelector('#leaveButton').addEventListener('click', function () {
+                if (! confirm('Are you sure you want to leave this room?')) {
                     return;
                 }
 
-                fetch('/components/user_card?username=' + username).then(function (response) {
-                    // The API call was successful!
-                    return response.text();
-                }).then(function (html) {
-                    const col = document.createElement('div');
-                    col.id = 'player_' + username;
-                    col.classList.add('mb-3');
-                    col.innerHTML = html;
-                    document.getElementById('players').append(col);
-                    displayMessage(username + ' has connected to the chat....')
-                }).catch(function (err) {
-                    // There was an error
-                    console.warn('Something went wrong.', err);
-                });
+                leaveRoom();
+            });
+
+            function playerConnected(username) {
+                if (document.querySelector('#player_' + username)) {
+                    displayMessage(username + ' has reconnected to the chat....');
+                    return;
+                } else {
+                    displayMessage(username + ' has connected to the chat....');
+                }
+
+                displayPlayerInList(username);
+            }
+
+            function displayPlayerInList(username) {
+                const userCardTemplate = document.querySelector('#userCardTemplate > div').cloneNode(true);
+                userCardTemplate.id = 'player_' + username;
+                userCardTemplate.querySelector('.card_username').innerHTML = 
+                    username +
+                    (username === currentPlayer ? ' (you)' : '') +
+                    (username === owner ? ' <b>♕</b>' : '');
+
+                document.querySelector('#players').append(userCardTemplate);
+            }
+
+            function removePlayerFromList(username) {
+                document.querySelector('#player_' + username).remove();
             }
 
             function displayMessage(message, user=null) {

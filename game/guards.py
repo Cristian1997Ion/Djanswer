@@ -2,7 +2,6 @@ from django.http import HttpRequest
 from django.shortcuts import redirect
 
 from game.models import Player
-from django.db import connection
 
 
 def no_room_guard(function):
@@ -15,7 +14,7 @@ def no_room_guard(function):
             return redirect('room_lobby', room_code=request.user.room.code)
 
         return function(request, *args, **kwargs)
-    return game_not_started_guard(guard)
+    return guard
 
 def exact_room_guard(function):
     """
@@ -24,14 +23,20 @@ def exact_room_guard(function):
     """
     def guard(request: HttpRequest, *args, **kwargs):
         player: Player = request.user
-        if not player.room:
-            return redirect('/')
-        
         if player.room.code != kwargs['room_code']:
             return redirect('room_lobby', room_code=player.room.code)
 
         return function(request, *args, **kwargs)
     return guard
+
+def has_room_guard(function):
+    def guard(request: HttpRequest, *args, **kwargs):
+        player: Player = request.user
+        if not player.room:
+            return redirect('/')
+        return function(request, *args, **kwargs)
+    return guard
+        
 
 def game_not_started_guard(function):
     """
