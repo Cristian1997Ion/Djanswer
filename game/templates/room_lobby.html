@@ -4,13 +4,11 @@
 
 
 {% block topbar %}
-    <h2 class="text-light">Djanswer</h2>
 {% endblock topbar %}
     
 
 {% block content %}
     {% load bootstrap_icons %}
-    <br>
     <div class="row" id="game">
         <div class="col-lg-3 card mb-2 mb-lg-0">
             <div class="card-body">
@@ -61,6 +59,7 @@
         const roomCode = '{{ room.code }}';
         const currentPlayer = '{{ user.username }}';
         const owner = '{{ room.owner.username }}';
+        let players = [];
 
         {// socket functions        
             const socketUrl = 
@@ -84,7 +83,7 @@
                     return;
                 }  
                 
-                if (message.type === 'player_connected' && message.player != currentPlayer) {
+                if (message.type === 'player_connected' && message.player !== currentPlayer) {
                     // another player has connected
                     playerConnected(message.player);
                     return;
@@ -183,6 +182,8 @@
             }
 
             function displayPlayerInList(username) {
+                players.push(username);
+
                 const userCardTemplate = document.querySelector('#userCardTemplate > div').cloneNode(true);
                 userCardTemplate.id = 'player_' + username;
                 userCardTemplate.querySelector('.card_username').innerHTML = 
@@ -194,6 +195,7 @@
             }
 
             function removePlayerFromList(username) {
+                players = players.filter(player => player !== username)
                 document.querySelector('#player_' + username).remove();
             }
 
@@ -204,6 +206,13 @@
 
         { // start game
             function startCountdown() {
+                if (players.length < 4) {
+                    alert('At least 4 players must be present in the room!');
+                    return;
+                }
+
+                sendMessage('The game will start in 5 seconds!');
+
                 seconds = 5;
                 this.classList.replace('btn-success', 'btn-outline-danger');
                 this.innerHTML = 'CANCEL :<span id="startCountdown">'+ seconds +'</span>:';
@@ -214,6 +223,7 @@
             }
 
             function stopCountdown() {
+                sendMessage('The game will not start anymore!');
                 this.classList.replace('btn-outline-danger', 'btn-success')
                 this.innerHTML = 'START';
                 this.removeEventListener('click', stopCountdown);

@@ -51,11 +51,12 @@ class RoomLobbyConsumer(AsyncWebsocketConsumer):
                 }
             )
         elif data['type'] == 'chat_message':
+            text: str = data['text']
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     'type': 'chat_message_received',
-                    'text': data['text'],
+                    'text': text.strip(),
                     'player': self.player.username
                 }
             )

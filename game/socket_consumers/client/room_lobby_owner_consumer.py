@@ -28,6 +28,9 @@ class RoomLobbyOwnerConsumer(RoomLobbyConsumer):
             
             await self.disconnect()
         elif data['type'] == 'start_game':
+            if Player.objects.filter(room=self.room).count() < 4:
+                return
+            
             await self.start_game()
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -35,8 +38,9 @@ class RoomLobbyOwnerConsumer(RoomLobbyConsumer):
                     'type': 'game_started',
                 }
             )
-        
-        super().receive(text_data)
+            return
+                
+        await super().receive(text_data)
     
     @database_sync_to_async
     def delete_room(self):
