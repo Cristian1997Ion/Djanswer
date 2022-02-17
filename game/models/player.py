@@ -1,3 +1,4 @@
+import os
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.validators import MinLengthValidator, RegexValidator
@@ -6,6 +7,7 @@ from game.models.room import Room
 
 # Players are temporary, only for rooms
 class Player(AbstractBaseUser):
+    
     email = models.EmailField()
     username = models.CharField(max_length=16, unique=True, validators=[
         RegexValidator(r'^[0-9a-zA-Z]*$', 'Only alphanumeric characters are allowed.'),

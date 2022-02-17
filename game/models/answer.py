@@ -1,0 +1,6 @@
+from django.db import models
+
+class Answer(models.Model):
+    text = models.CharField(max_length=128, null=True, default=None)
+    
+    player = models.ForeignKey(to='Player', on_delete=models.DO_NOTHING)

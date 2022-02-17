@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 import environ
 import os
+
 env = environ.Env(
     # set casting, default value
     DEBUG               = (bool, False),
@@ -22,7 +23,7 @@ env = environ.Env(
     EMAIL_HOST_USER     = (str, ''),
     EMAIL_HOST_PASSWORD = (str, ''),
     EMAIL_USE_TLS       = (bool, False),
-    EMAIL_USE_SSL       = (bool, True)
+    EMAIL_USE_SSL       = (bool, True),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -162,3 +163,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+CELERY_TIMEZONE = "Australia/Tasmania"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60

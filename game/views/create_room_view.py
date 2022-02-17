@@ -4,7 +4,9 @@ from django.shortcuts import redirect, render
 from game.forms.create_room_form import CreateRoomForm
 from game.guards import no_room_guard
 from django.contrib.auth.decorators import login_required
-from ..models import Room, Player
+from django.db import transaction
+
+from ..models import Room, Player, Round
 
 
 @login_required
@@ -14,11 +16,12 @@ def create_room(request: HttpRequest):
     if request.method == 'POST':
         form = CreateRoomForm(request.POST)
         if form.is_valid():
-            room: Room = form.save(commit=False)
-            room.owner = player
-            room.save()
-            player.join_room(room)
-
+            with transaction.atomic():    
+                room: Room = form.save(commit=False)
+                room.owner = player
+                room.save()
+                player.join_room(room)
+                Round.objects.bulk_create([Round(room=room) for _ in range(Room.ROUNDS_NUMBER)])
             return redirect('room_lobby', room_code=room.code)
         else:
             return render(request, 'create_room.html', {'errors': form.errors.items(), 'code': request.POST.get('code')})

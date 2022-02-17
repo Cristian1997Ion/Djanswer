@@ -1,0 +1,3 @@
+from .room_lobby_consumer import RoomLobbyConsumer
+from .room_lobby_owner_consumer import RoomLobbyOwnerConsumer
+from .room_game_consumer import RoomGameConsumer

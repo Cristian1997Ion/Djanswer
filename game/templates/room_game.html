@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Djanswer - Room #{{ roomCode }}{% endblock %}
+
+
+{% block topbar %}
+    <h2 class="text-light">Djanswer</h2>
+{% endblock topbar %}
+    
+
+{% block content %}
+    {% load bootstrap_icons %}
+    <br>
+    <div class="row" id="game">
+    </div>    
+
+    <script>
+        const roomCode = '{{ room.code }}';
+        const currentUser = '{{ user.username }}';
+
+        {// socket functions        
+            const chatSocket = new WebSocket(
+                'ws://'
+                + window.location.host
+                + '/ws/room/'
+                + roomCode
+                + '/game'
+            );
+
+            chatSocket.onopen = function () {
+                chatSocket.send(JSON.stringify({
+                    'type': 'connected'
+                }));
+            }
+
+            chatSocket.onmessage = function(e) {
+                const message = JSON.parse(e.data);
+            };
+
+            chatSocket.onclose = function(e) {
+                console.error('Chat socket closed unexpectedly');
+            };
+        }
+    </script>
+{% endblock %}

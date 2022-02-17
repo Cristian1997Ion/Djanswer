@@ -31,7 +31,7 @@
                 </div>
                 <div class="overflow-scroll d-none d-lg-block" style="height: 75vh" id="players">
                     {% for player in players %}
-                    <div class="mb-3">
+                    <div class="mb-3" id="player_{{ player.username }}">
                         {% include 'components/user_card.html' with  username=player.username %}
                     </div>
                 {% endfor %}
@@ -55,13 +55,7 @@
         const currentUser = '{{ user.username }}';
 
         {// socket functions        
-            const chatSocket = new WebSocket(
-                'ws://'
-                + window.location.host
-                + '/ws/room/'
-                + roomCode
-                + '/lobby'
-            );
+            const chatSocket = new WebSocket('{{ socketUrl }}');
 
             chatSocket.onopen = function () {
                 chatSocket.send(JSON.stringify({
@@ -71,12 +65,12 @@
 
             chatSocket.onmessage = function(e) {
                 const message = JSON.parse(e.data);
-
-                console.log(message);
-                if (message.type === 'connected' && message.user != currentUser) {
+                if (message.type === 'player_connected' && message.user != currentUser) {
                     playerConnected(message.user);
-                } else if (message.type === 'chat_message') {
-                    displayMessage(message.text, message.user)
+                } else if (message.type === 'chat_message_received') {
+                    displayMessage(message.text, message.user);
+                } else if (message.type === 'game_started') {
+                    location.replace('{% url "room_game" room_code=room.code %}');
                 }
             };
 
@@ -90,6 +84,10 @@
                     'type': 'chat_message',
                     'text': message
                 }));
+            }
+
+            function startGame() {
+                chatSocket.send(JSON.stringify({'type': 'start_game'}))
             }
         }
 
@@ -116,15 +114,21 @@
             };
 
             function playerConnected(username) {
+                if (document.querySelector('#player_' + username)) {
+                    displayMessage(username + ' has reconnected to the chat....')
+                    return;
+                }
+
                 fetch('/components/user_card?username=' + username).then(function (response) {
                     // The API call was successful!
                     return response.text();
                 }).then(function (html) {
                     const col = document.createElement('div');
+                    col.id = 'player_' + username;
                     col.classList.add('mb-3');
                     col.innerHTML = html;
                     document.getElementById('players').append(col);
-                    displayMessage(username + ' has (re)connected to the chat....')
+                    displayMessage(username + ' has connected to the chat....')
                 }).catch(function (err) {
                     // There was an error
                     console.warn('Something went wrong.', err);
@@ -138,10 +142,10 @@
 
         { // start game
             function startCountdown() {
+                seconds = 5;
                 this.classList.replace('btn-success', 'btn-outline-danger');
                 this.innerHTML = 'CANCEL :<span id="startCountdown">'+ seconds +'</span>:';
 
-                seconds = 5;
                 countdownInterval = setInterval(countdown, 1000);
                 this.removeEventListener('click', startCountdown);
                 this.addEventListener('click', stopCountdown);
@@ -165,12 +169,13 @@
                     button.disabled = true;
                     button.innerHTML = 'LOADING...'
                     button.removeEventListener('click', stopCountdown);
+                    startGame();
                 }
             }
 
+            document.querySelector('#startButton')?.addEventListener('click', startCountdown);
             var countdownInterval;
             var seconds = 5;
-            document.querySelector('#startButton').addEventListener('click', startCountdown);
         }
 
     </script>

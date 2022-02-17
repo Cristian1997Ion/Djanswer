@@ -1,8 +1,10 @@
 # chat/routing.py
 from django.urls import re_path
 
-from . import socket_consumers
+import game.socket_consumers.client as client
 
 websocket_urlpatterns = [
-    re_path(r'ws/room/(?P<room_code>\w+)/lobby$', socket_consumers.RoomLobbyConsumer.as_asgi()),
+    re_path(r'ws/room/(?P<room_code>\w+)/lobby$', client.RoomLobbyConsumer.as_asgi()),
+    re_path(r'ws/room/(?P<room_code>\w+)/lobby/owner$', client.RoomLobbyOwnerConsumer.as_asgi()),
+    re_path(r'ws/room/(?P<room_code>\w+)/game$', client.RoomGameConsumer.as_asgi()),
 ]
