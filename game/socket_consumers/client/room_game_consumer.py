@@ -21,10 +21,8 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         if self.room.code != self.room_code:
             raise Exception
         
-        self.currentRound = self.room.rounds.filter(ended_at=None).first()
-        if self.currentRound is None:
-            raise Exception
-    
+        self.current_round = self.room.current_round
+
     async def connect(self):
         await self.initialize()
 
@@ -34,14 +32,34 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+        await self.determine_phase()
 
-    async def disconnect(self, close_code):
+    async def disconnect(self, code):
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
 
     async def receive(self, text_data):
-        print(text_data)
         data = json.loads(text_data)
         
+    async def determine_phase(self):
+        if self.current_round is None:
+            return
+        
+        if self.current_round.vote_phase_started_at:
+            pass
+        
+        if self.current_round.answers_phase_started_at:
+            pass
+        
+        if self.current_round.questions_phase_started_at:
+            await self.questions_phase_started({
+                'type': 'question_phase_started',
+            })
+        
+    async def questions_phase_started(self, event):
+        await self.send(text_data=json.dumps({
+            'type': event['type'],
+            'remaining_time': self.current_round.get_questions_phase_remaining_time()
+        }))

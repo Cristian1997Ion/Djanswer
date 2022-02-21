@@ -16,12 +16,13 @@ from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter, ChannelNameRouter
 
 from game.routing import websocket_urlpatterns
-from game.socket_consumers.worker.game_engine_consumer import GameConsumer
+from game.socket_consumers.utils import GAME_ENGINE_NAME
+from game.socket_consumers.worker.game_engine_consumer import GameEngineConsumer
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Djanswer.settings')
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
-    'channel': ChannelNameRouter({"game_engine": GameConsumer})
+    'channel': ChannelNameRouter({GAME_ENGINE_NAME: GameEngineConsumer.as_asgi()})
 })

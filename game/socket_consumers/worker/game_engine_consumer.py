@@ -1,10 +1,14 @@
-from game.engine import GameEngine
 from channels.consumer import SyncConsumer
+from game.engine import GameEngine
 
-
-class GameConsumer(SyncConsumer):
+class GameEngineConsumer(SyncConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.group_name = "snek_game"
-        self.engine = GameEngine(self.group_name)
-        self.engine.start()
+        
+    def start_game(self, event):
+        if not event['room_id']:
+            return
+
+        engine = GameEngine(event['room_id'])
+        engine.start()
+        

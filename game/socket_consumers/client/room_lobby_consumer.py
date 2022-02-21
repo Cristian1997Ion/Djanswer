@@ -34,7 +34,7 @@ class RoomLobbyConsumer(AsyncWebsocketConsumer):
             'players': [player.username for player in self.room.players.all()]
         }))
 
-    async def disconnect(self):
+    async def disconnect(self, code):
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
@@ -69,9 +69,7 @@ class RoomLobbyConsumer(AsyncWebsocketConsumer):
                     'player': self.player.username
                 }
             )
-            
-            await self.disconnect()
-        
+                
         return data
     
     @database_sync_to_async

@@ -1,6 +1,7 @@
 from django.apps import AppConfig
 
-from Djanswer import container
+from Djanswer import container as general_container
+from game import container as game_container
 
 
 class GameConfig(AppConfig):
@@ -8,5 +9,6 @@ class GameConfig(AppConfig):
     name = 'game'
 
     def ready(self) -> None:
-        container.wire(modules=['.views'])
+        general_container.wire(modules=['.views'])
+        game_container.wire(modules=['.engine'])
         return super().ready()

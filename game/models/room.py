@@ -31,3 +31,7 @@ class Room(models.Model):
     @property
     def rounds(self) -> 'RelatedManager[Round]':
         return self.round_set
+    
+    @property
+    def current_round(self) -> 'Round|None':
+        return self.rounds.filter(ended=False).order_by('id').first()
