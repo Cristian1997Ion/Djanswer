@@ -117,6 +117,11 @@
                     location.replace('{% url "room_game" room_code=room.code %}');
                     return;
                 }
+
+                if (message.type === 'start_game_aborted') {
+                    stopCountdown();
+                    return;
+                }
             };
 
             chatSocket.onclose = function(e) {
@@ -223,11 +228,19 @@
             }
 
             function stopCountdown() {
+                if (! countdownInterval) {
+                    return;
+                }
+
                 sendMessage('The game will not start anymore!');
-                this.classList.replace('btn-outline-danger', 'btn-success')
-                this.innerHTML = 'START';
-                this.removeEventListener('click', stopCountdown);
-                this.addEventListener('click', startCountdown);
+
+                const button = document.querySelector('#startButton');
+                button.classList.replace('btn-outline-danger', 'btn-success')
+                button.disabled = false;
+                button.innerHTML = 'START';
+                button.removeEventListener('click', stopCountdown);
+                button.addEventListener('click', startCountdown);
+
                 clearInterval(countdownInterval);
             }
 

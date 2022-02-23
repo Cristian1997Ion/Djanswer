@@ -30,7 +30,13 @@ class RoomLobbyOwnerConsumer(RoomLobbyConsumer):
             return            
         elif data['type'] == 'start_game':
             if (not await self.start_game()):
-                return
+                await self.channel_layer.send(
+                    GAME_ENGINE_NAME,
+                    {
+                        'type': 'start_game_aborted',
+                        'room_id': self.room.pk
+                    }
+            )
 
             await self.channel_layer.send(
                 GAME_ENGINE_NAME,
@@ -39,6 +45,7 @@ class RoomLobbyOwnerConsumer(RoomLobbyConsumer):
                     'room_id': self.room.pk
                 }
             )
+
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -47,8 +54,12 @@ class RoomLobbyOwnerConsumer(RoomLobbyConsumer):
             )
             
             return
-                      
+
         await super().receive(text_data)
+    
+    async def player_left(self, event):
+        await self.send(text_data=json.dumps({'type': 'start_game_aborted'}))
+        await super().player_left(event)
     
     @database_sync_to_async
     def delete_room(self):

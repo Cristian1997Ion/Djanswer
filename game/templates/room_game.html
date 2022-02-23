@@ -5,7 +5,7 @@
 {% block content %}
     {% load bootstrap_icons %}
     <br>
-    <div class="d-flex justify-content-center mb-3 game-phase">
+    <div class="d-flex justify-content-center mb-3" id="spinner">
         <div class="spinner-border text-light" role="status">
             <span class="visually-hidden">Loading...</span>
           </div>
@@ -17,8 +17,24 @@
                     <p class="h2">Write your question below!</p>
                     <p class="h4 text-muted fs-6">Remember, you'll receive points if the most voted answer is for your question.</p>
                 </div>
-                <input type="text" class="form-control" placeholder="What did you eat last night?">
-                <button class="btn btn-primary w-100 mt-2">submit <span id="questionsTimer" class="fs-6"></span></button>
+                <input type="text" class="form-control" placeholder="What did you eat last night?" id="questionInput">
+                <button class="btn btn-primary w-100 mt-2" id="submitQuestionButton">
+                    submit <span id="timer" class="fs-6"></span>
+                </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row justify-content-center mb-3 game-phase d-none" id="answersPhase">
+        <div class="col-md-6 card">
+            <div class="card-body">
+                <div class="card-title">
+                    <p class="h2" id="questionText"></p>
+                </div>
+                <input type="text" class="form-control" placeholder="A funny answer!" id="answerInput">
+                <button class="btn btn-primary w-100 mt-2" id="submitAnswerButton">
+                    submit <span id="timer" class="fs-6"></span>
+                </button>
                 </div>
             </div>
         </div>
@@ -47,30 +63,98 @@
 
             chatSocket.onmessage = function(e) {
                 const message = JSON.parse(e.data);
-                if (message.type === 'question_phase_started') {
-                    document.querySelector('.game-phase').classList.add('d-none');
-                    document.querySelector('#questionsPhase').classList.remove('d-none');
-                    questionsRemainingSeconds = message.remaining_time;
-                    timer(message.remaining_time, document.querySelector('#questionsTimer'))
+                console.log(message)
+
+                if (message.type === 'questions_phase_started') {
+                    startQuestionsPhase(message.remaining_time);
+                    return;
+                }
+
+                if (message.type === 'question_error') {
+                    alert(message.error);
+                    startQuestionsPhase(message.remaining_time);
+                    return;
+                }
+
+                if (message.type === 'answers_phase_started') {
+                    startAnswersPhase(message.remaining_time, message.question)
+                    return;
                 }
             };
 
             chatSocket.onclose = function(e) {
                 console.error('Chat socket closed unexpectedly');
             };
+
+            function sendQuestion(question) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'question',
+                    'text': question
+                }));
+            }
+
+            function sendAnswer(answer) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'answer',
+                    'text': answer
+                }));
+            }
         }
 
-        {// Timers
-            function timer(remainingSeconds, targetElement) {
-                remainingSeconds = remainingSeconds > 0 ? remainingSeconds : 0;
-                targetElement.innerText = '(' + remainingSeconds + ')';
+        {// questions phase
+            function startQuestionsPhase(remaining_time) {
+                document.querySelector('#spinner').classList.add('d-none');
+                document.querySelectorAll('.game-phase').forEach((element) => {element.classList.add('d-none')});
+                document.querySelector('#questionsPhase').classList.remove('d-none');
+                timer(remaining_time, document.querySelector('#questionsPhase #timer'));
+            }
 
-                if (remainingSeconds <= 0) {
+            document.querySelector('#submitQuestionButton').addEventListener('click', function () {
+                const question = document.querySelector('#questionInput').value;
+                if (! question) {
+                    alert('Question cannot be blank!');
                     return;
                 }
 
-                setTimeout(timer, 1000, remainingSeconds - 1, targetElement);
+                sendQuestion(question);
+                document.querySelectorAll('.game-phase').forEach((element) => {element.classList.add('d-none')});
+                document.querySelector('#spinner').classList.remove('d-none');
+            });
+        }
+
+        {// answers phase
+            function startAnswersPhase(remaining_time, question) {
+                document.querySelector('#spinner').classList.add('d-none');
+                document.querySelectorAll('.game-phase').forEach((element) => {element.classList.add('d-none')});
+                document.querySelector('#answersPhase').classList.remove('d-none');
+                document.querySelector('#answersPhase #questionText').innerText = question
+                timer(remaining_time, document.querySelector('#answersPhase #timer'));
             }
+
+            document.querySelector('#submitAnswerButton').addEventListener('click', function () {
+                const answer = document.querySelector('#answerInput').value;
+                if (! answer) {
+                    alert('Question cannot be blank!');
+                    return;
+                }
+
+                sendAnswer(answer);
+                document.querySelectorAll('.game-phase').forEach((element) => {element.classList.add('d-none')});
+                document.querySelector('#spinner').classList.remove('d-none');
+            });
+        }
+
+        
+        function timer(remainingSeconds, targetElement) {
+            remainingSeconds = remainingSeconds > 0 ? remainingSeconds : 0;
+            targetElement.innerText = '(' + remainingSeconds + ')';
+
+            if (remainingSeconds <= 0) {
+                targetElement.parentElement.disabled = true;
+                return;
+            }
+
+            setTimeout(timer, 1000, remainingSeconds - 1, targetElement);
         }
     </script>
 {% endblock %}
