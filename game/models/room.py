@@ -23,15 +23,9 @@ class Room(models.Model):
     game_started = models.BooleanField(default=False)
 
     owner = models.OneToOneField(to='Player', on_delete=models.DO_NOTHING, related_name='owned_room')
-    
-    @property
-    def players(self) -> 'RelatedManager[Player]':
-        return self.player_set
-    
-    @property
-    def rounds(self) -> 'RelatedManager[Round]':
-        return self.round_set
+    round_set: 'RelatedManager[Round]'
+    player_set: 'RelatedManager[Player]'
     
     @property
     def current_round(self) -> 'Round|None':
-        return self.rounds.filter(ended=False).order_by('id').first()
+        return self.round_set.filter(ended=False).order_by('id').first()

@@ -9,7 +9,7 @@ class RoomLobbyConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def initialize(self):
         self.player: Player = self.scope['user']
-        self.room: Room = Room.objects.select_related('owner').prefetch_related('players').get(pk=self.player.room_id)
+        self.room: Room = Room.objects.select_related('owner').prefetch_related('player_set').get(pk=self.player.room_id)
         self.room_code = self.scope['url_route']['kwargs']['room_code']
         self.room_group_name = socket_utils.get_lobby_channel_name(self.room_code)
         
@@ -31,7 +31,7 @@ class RoomLobbyConsumer(AsyncWebsocketConsumer):
         await self.accept()
         await self.send(text_data=json.dumps({
             'type': 'connected',
-            'players': [player.username for player in self.room.players.all()]
+            'players': [player.username for player in self.room.player_set.all()]
         }))
 
     async def disconnect(self, code):

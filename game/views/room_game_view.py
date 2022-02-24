@@ -11,6 +11,6 @@ from ..models import Room
 @exact_room_guard
 @game_started_guard
 def room_game(request: HttpRequest, room_code):
-    room : Room = Room.objects.prefetch_related('rounds__questions').get(code=room_code)
+    room : Room = Room.objects.prefetch_related('round_set__question_set').get(code=room_code)
 
-    return render(request, 'room_game.html', {'players': room.players.all(), 'room': room})
+    return render(request, 'room_game.html', {'players': room.player_set.all(), 'room': room})

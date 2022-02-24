@@ -18,10 +18,7 @@ class Round(models.Model):
     ended = models.BooleanField(default=False)
     
     room = models.ForeignKey(to='Room', on_delete=models.CASCADE)
-    
-    @property
-    def questions(self) -> 'RelatedManager[Question]':
-        return self.question_set
+    question_set: 'RelatedManager[Question]'
     
     def get_questions_phase_remaining_time(self):
         if not self.questions_phase_started_at:

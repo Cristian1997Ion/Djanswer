@@ -18,7 +18,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         self.room: Room = (
             Room.objects
             .select_related('owner')
-            .prefetch_related('players', Prefetch('rounds', queryset=Round.objects.order_by('id')))
+            .prefetch_related('player_set', Prefetch('round_set', queryset=Round.objects.order_by('id')))
             .get(pk=self.player.room_id)
         )
         
@@ -133,7 +133,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         ).save()
     
     def already_submited_question(self):
-        return self.current_round.questions.filter(author=self.player).exists()
+        return self.current_round.question_set.filter(author=self.player).exists()
     
     async def answers_phase_started(self, event):
         question: Question = await self.get_assigned_question()
@@ -146,7 +146,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_assigned_question(self):
         self.current_round.refresh_from_db()
-        return self.current_round.questions.filter(respondent=self.player).first()
+        return self.current_round.question_set.filter(respondent=self.player).first()
     
     @database_sync_to_async
     def answer_submited(self, answer):
@@ -169,4 +169,4 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         ).save()
     
     def already_answered(self):
-        return self.current_round.questions.filter(answer__player=self.player).exists()
+        return self.current_round.question_set.filter(answer__player=self.player).exists()

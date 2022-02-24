@@ -15,7 +15,7 @@ def join_room(request: HttpRequest):
         except Room.DoesNotExist:
             return render(request, 'join_room.html', {'errors': ['Invalid room code or secret.'], 'code': request.POST.get('code')})
         
-        if room.players.count() >= Room.MAX_PLAYERS:
+        if room.player_set.count() >= Room.MAX_PLAYERS:
             return render(request, 'join_room.html', {'errors': ['This room is full.'], 'code': request.POST.get('code')})
 
         player.join_room(room)
