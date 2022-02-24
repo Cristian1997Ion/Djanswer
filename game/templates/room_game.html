@@ -80,6 +80,13 @@
                     startAnswersPhase(message.remaining_time, message.question)
                     return;
                 }
+
+                if (message.type === 'answer_error') {
+                    alert(message.error);
+                    startAnswersPhase(message.remaining_time, message.question);
+                    return;
+                }
+
             };
 
             chatSocket.onclose = function(e) {

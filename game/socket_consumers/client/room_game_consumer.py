@@ -1,11 +1,8 @@
-from cgitb import text
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from game.models import Player, Room, Round, player
+from game.models import Player, Room, Round, Answer, Question
 from channels.db import database_sync_to_async
 from django.db.models import Prefetch
-from game.models import question
-from game.models.answer import Answer
 from game.models.question import Question
 import game.socket_consumers.utils as socket_utils
 
@@ -52,7 +49,8 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
             except:
                 await self.send(text_data=json.dumps({
                     'type': 'question_error',
-                    'error': 'An error occured while submiting your question, please try again!'
+                    'error': 'An error occured while submiting your question, please try again!',
+                    'remaining_time': self.current_round.get_questions_phase_remaining_time()
                 }))
             finally:
                 return
@@ -61,20 +59,12 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
             try:
                 await self.answer_submited(data['text'])
             except:
+                question: Question = await database_sync_to_async(self.get_assigned_question)()
                 await self.send(text_data=json.dumps({
                     'type': 'answer_error',
-                    'error': 'An error occured while submiting your answer, please try again!'
-                }))
-            finally:
-                return
-        
-        if data['type'] == 'answer':
-            try:
-                await self.answer_submited(data['text'])
-            except:
-                await self.send(text_data=json.dumps({
-                    'type': 'answer_error',
-                    'error': 'An error occured while submiting your answer, please try again!'
+                    'error': 'An error occured while submiting your answer, please try again!',
+                    'remaining_time': self.current_round.get_answers_phase_remaining_time(),
+                    'question': question.text
                 }))
             finally:
                 return
@@ -136,14 +126,13 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         return self.current_round.question_set.filter(author=self.player).exists()
     
     async def answers_phase_started(self, event):
-        question: Question = await self.get_assigned_question()
+        question: Question = await database_sync_to_async(self.get_assigned_question)()
         await self.send(text_data=json.dumps({
             'type': event['type'],
-            'remaining_time': self.current_round.get_questions_phase_remaining_time(),
+            'remaining_time': self.current_round.get_answers_phase_remaining_time(),
             'question': question.text
         }))
         
-    @database_sync_to_async
     def get_assigned_question(self):
         self.current_round.refresh_from_db()
         return self.current_round.question_set.filter(respondent=self.player).first()
@@ -153,12 +142,12 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         if self.current_round.answers_phase_started_at is None:
             return
         
-        if self.current_round.vote_phase_started_at is not None:
+        if self.current_round.get_answers_phase_remaining_time() <= 0:
             return
         
         if self.already_answered():
             return
-        
+    
         if len(answer) == 0:
             return
         

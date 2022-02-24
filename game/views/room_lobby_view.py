@@ -15,5 +15,4 @@ from ..models import Room, Player
 @game_not_started_guard
 def room_lobby(request: HttpRequest, room_code):
     room : Room = Room.objects.select_related('owner').get(code=room_code)
-
     return render(request, 'room_lobby.html', {'room': room})

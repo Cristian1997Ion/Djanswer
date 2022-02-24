@@ -60,8 +60,7 @@ class GameEngine(threading.Thread):
     
         
         time.sleep(Round.ANSWERS_PHASE_DURATION)
-        
-        for question in self.current_round.question_set.filter(answer=None):
+        for question in self.current_round.question_set.select_related('answer').filter(answer=None).all():
             Answer(
                 text="I don't know how to respond to that...",
                 player=question.respondent,

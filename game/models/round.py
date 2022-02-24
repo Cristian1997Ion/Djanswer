@@ -28,3 +28,12 @@ class Round(models.Model):
         timediff = now - self.questions_phase_started_at
         remaining_seconds = self.QUESTIONS_PHASE_DURATION - int(timediff.total_seconds())
         return remaining_seconds if remaining_seconds > 0 else 0
+    
+    def get_answers_phase_remaining_time(self):
+        if not self.questions_phase_started_at:
+            return self.QUESTIONS_PHASE_DURATION
+
+        now = datetime.datetime.utcnow().replace(tzinfo=utc)
+        timediff = now - self.answers_phase_started_at
+        remaining_seconds = self.ANSWERS_PHASE_DURATION - int(timediff.total_seconds())
+        return remaining_seconds if remaining_seconds > 0 else 0
