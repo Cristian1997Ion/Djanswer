@@ -1,6 +1,8 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from game.models import Player, Room, Round, Answer, Question
+from django.db.models import Q
+from django.db import connection
+from game.models import Player, Room, Round, Answer, Question, answer
 from channels.db import database_sync_to_async
 from django.db.models import Prefetch
 from game.models.question import Question
@@ -75,12 +77,13 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
             return
         
         if self.current_round.vote_phase_started_at is not None:
+            await self.vote_phase_started({'type': 'vote_phase_started'})
             return
         
         if self.current_round.answers_phase_started_at is not None:
             if await database_sync_to_async(self.already_answered)():
-                return
-            
+                #return
+                pass
             await self.answers_phase_started({'type': 'answers_phase_started'})
             return
         
@@ -159,3 +162,30 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
     
     def already_answered(self):
         return self.current_round.question_set.filter(answer__player=self.player).exists()
+    
+    async def vote_phase_started(self, event):
+        await self.send(text_data=json.dumps({
+            'type': event['type'],
+            'remaining_time': self.current_round.get_vote_phase_remaining_time(),
+            'answered_questions': await self.get_vote_questions()
+        }))
+    
+    @database_sync_to_async
+    def get_vote_questions(self):
+        questions = (
+            self.current_round
+            .question_set
+            .select_related('answer')
+            .filter(~Q(respondent=self.player), ~Q(author=self.player))
+            .all()
+        )    
+        
+        vote_questions = []
+        for question in questions:
+            vote_questions.append({
+                'question': question.text,
+                'answer': question.answer.text,
+                'answer_id': question.answer.pk
+            })
+
+        return vote_questions

@@ -4,7 +4,6 @@
 
 {% block content %}
     {% load bootstrap_icons %}
-    <br>
     <div class="d-flex justify-content-center mb-3" id="spinner">
         <div class="spinner-border text-light" role="status">
             <span class="visually-hidden">Loading...</span>
@@ -18,8 +17,8 @@
                     <p class="h4 text-muted fs-6">Remember, you'll receive points if the most voted answer is for your question.</p>
                 </div>
                 <input type="text" class="form-control" placeholder="What did you eat last night?" id="questionInput">
-                <button class="btn btn-primary w-100 mt-2" id="submitQuestionButton">
-                    submit <span id="timer" class="fs-6"></span>
+                <button class="btn btn-primary w-100 mt-2 fs-5" id="submitQuestionButton">
+                    submit <span id="timer" class="badge bg-danger"></span>
                 </button>
                 </div>
             </div>
@@ -32,14 +31,29 @@
                     <p class="h2" id="questionText"></p>
                 </div>
                 <input type="text" class="form-control" placeholder="A funny answer!" id="answerInput">
-                <button class="btn btn-primary w-100 mt-2" id="submitAnswerButton">
-                    submit <span id="timer" class="fs-6"></span>
+                <button class="btn btn-primary w-100 mt-2 fs-5" id="submitAnswerButton">
+                    submit <span id="timer" class="badge bg-danger"></span>
                 </button>
                 </div>
             </div>
         </div>
     </div>
+    <div class="row mb-3 game-phase d-none justify-content-center" id="votePhase">
+        <div class="col-md-12 text-center text-light h2">Vote your favorite! <span id="timer" class="badge bg-danger fs-5"></span></div>
+    </div>
 
+    <div id="voteCardTemplate" class="d-none">
+        <div class="vote-card col-md-4 m-1 h-100">
+            <div class="card">
+                <div class="card-header">
+                    <div id="questionText" class="h5"></div>
+                </div>
+                <div class="card-body">
+                    <div id="answerText" class="h5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
     <script>
@@ -87,6 +101,11 @@
                     return;
                 }
 
+                if (message.type === 'vote_phase_started') {
+                    startVotePhase(message.remaining_time, message.answered_questions);
+                    return;
+                }
+
             };
 
             chatSocket.onclose = function(e) {
@@ -116,6 +135,10 @@
                 timer(remaining_time, document.querySelector('#questionsPhase #timer'));
             }
 
+            document.querySelector('#questionsPhase #timer').addEventListener('timeout', function () {
+                document.querySelector('#submitQuestionButton').disabled = true;
+            })
+
             document.querySelector('#submitQuestionButton').addEventListener('click', function () {
                 const question = document.querySelector('#questionInput').value;
                 if (! question) {
@@ -138,6 +161,10 @@
                 timer(remaining_time, document.querySelector('#answersPhase #timer'));
             }
 
+            document.querySelector('#answersPhase #timer').addEventListener('timeout', function () {
+                document.querySelector('#submitAnswerButton').disabled = true;
+            })
+
             document.querySelector('#submitAnswerButton').addEventListener('click', function () {
                 const answer = document.querySelector('#answerInput').value;
                 if (! answer) {
@@ -151,13 +178,41 @@
             });
         }
 
+        {// vote phase
+            function startVotePhase(remaining_time, answeredQuestions) {
+                const votePhaseDiv = document.querySelector('#votePhase');
+                answeredQuestions.forEach((answeredQuestion) => {
+                    const voteCard = document.querySelector('#voteCardTemplate > div').cloneNode(true);
+                    voteCard.querySelector('#questionText').innerText = answeredQuestion.question;
+                    voteCard.querySelector('#answerText').innerText = answeredQuestion.answer;
+                    voteCard.addEventListener('click', function () {
+                        if (voteCard.getAttribute('disabled')) {
+                            return;
+                        }
+
+                        alert(answeredQuestion.answer_id);
+                    });
+                    votePhaseDiv.append(voteCard);
+                });
+
+                document.querySelector('#spinner').classList.add('d-none');
+                document.querySelectorAll('.game-phase').forEach((element) => { element.classList.add('d-none') });
+                votePhaseDiv.classList.remove('d-none')
+                timer(remaining_time, document.querySelector('#votePhase #timer'));
+            }
+
+            document.querySelector('#votePhase #timer').addEventListener('timeout', function () {
+                document.querySelectorAll('.vote-card').forEach((elem) => { elem.setAttribute('disabled', true); })
+            });
+        }
         
         function timer(remainingSeconds, targetElement) {
             remainingSeconds = remainingSeconds > 0 ? remainingSeconds : 0;
-            targetElement.innerText = '(' + remainingSeconds + ')';
+            targetElement.innerText = remainingSeconds;
 
             if (remainingSeconds <= 0) {
-                targetElement.parentElement.disabled = true;
+                const event = new Event('timeout');
+                targetElement.dispatchEvent(event);
                 return;
             }
 

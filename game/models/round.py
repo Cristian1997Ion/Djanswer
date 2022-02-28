@@ -2,8 +2,10 @@ import datetime
 from django.utils.timezone import utc
 from typing import TYPE_CHECKING
 from django.db import models
+
+from game.utils import get_remaining_time
 if TYPE_CHECKING:
-    from . import Question, Room
+    from . import Question
     from django.db.models.manager import RelatedManager
 
 
@@ -24,16 +26,16 @@ class Round(models.Model):
         if not self.questions_phase_started_at:
             return self.QUESTIONS_PHASE_DURATION
 
-        now = datetime.datetime.utcnow().replace(tzinfo=utc)
-        timediff = now - self.questions_phase_started_at
-        remaining_seconds = self.QUESTIONS_PHASE_DURATION - int(timediff.total_seconds())
-        return remaining_seconds if remaining_seconds > 0 else 0
+        return get_remaining_time(self.questions_phase_started_at + datetime.timedelta(seconds=self.QUESTIONS_PHASE_DURATION))
     
     def get_answers_phase_remaining_time(self):
         if not self.questions_phase_started_at:
             return self.QUESTIONS_PHASE_DURATION
 
-        now = datetime.datetime.utcnow().replace(tzinfo=utc)
-        timediff = now - self.answers_phase_started_at
-        remaining_seconds = self.ANSWERS_PHASE_DURATION - int(timediff.total_seconds())
-        return remaining_seconds if remaining_seconds > 0 else 0
+        return get_remaining_time(self.answers_phase_started_at + datetime.timedelta(seconds=self.ANSWERS_PHASE_DURATION))
+    
+    def get_vote_phase_remaining_time(self):
+        if not self.vote_phase_started_at:
+            return self.vote_phase_started_at
+
+        return get_remaining_time(self.vote_phase_started_at + datetime.timedelta(seconds=self.VOTE_PHASE_DURATION))

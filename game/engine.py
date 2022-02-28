@@ -24,8 +24,12 @@ class GameEngine(threading.Thread):
         self.logger: logging.Logger = room_logger_builder.build(room_id)
         
     def run(self):
-        self.__question_phase()
-        self.__answers_phase()
+        try:
+            self.__question_phase()
+            self.__answers_phase()
+            self.__vote_phase()
+        except Exception as exception:
+            self.logger.error(exception)
     
     def __question_phase(self):
         self.logger.info('STARTED QUESTIONS PHASE')
@@ -74,4 +78,5 @@ class GameEngine(threading.Thread):
         self.current_round.vote_phase_started_at = now()
         self.current_round.save()
         
+        async_to_sync(self.channel_layer.group_send)(self.room_group_name, {'type': 'vote_phase_started'})
         time.sleep(Round.VOTE_PHASE_DURATION)
