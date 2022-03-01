@@ -4,10 +4,17 @@
 
 {% block content %}
     {% load bootstrap_icons %}
+    <div class="toast align-items-center bg-warning text-light position-fixed mt-3 top-0 start-50 translate-middle-x" style="z-index: 99999;" role="alert" aria-live="assertive" aria-atomic="true" id="toast">
+        <div class="d-flex">
+            <div class="toast-body" id="message"></div>
+            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-center mb-3" id="spinner">
         <div class="spinner-border text-light" role="status">
             <span class="visually-hidden">Loading...</span>
-          </div>
+        </div>
     </div>
     <div class="row justify-content-center mb-3 game-phase d-none" id="questionsPhase">
         <div class="col-md-6 card">
@@ -20,7 +27,6 @@
                 <button class="btn btn-primary w-100 mt-2 fs-5" id="submitQuestionButton">
                     submit <span id="timer" class="badge bg-danger"></span>
                 </button>
-                </div>
             </div>
         </div>
     </div>
@@ -34,7 +40,6 @@
                 <button class="btn btn-primary w-100 mt-2 fs-5" id="submitAnswerButton">
                     submit <span id="timer" class="badge bg-danger"></span>
                 </button>
-                </div>
             </div>
         </div>
     </div>
@@ -54,7 +59,6 @@
             </div>
         </div>
     </div>
-
 
     <script>
         const roomCode = '{{ room.code }}';
@@ -85,7 +89,7 @@
                 }
 
                 if (message.type === 'question_error') {
-                    alert(message.error);
+                    showAlert(message.error);
                     startQuestionsPhase(message.remaining_time);
                     return;
                 }
@@ -96,13 +100,19 @@
                 }
 
                 if (message.type === 'answer_error') {
-                    alert(message.error);
+                    showAlert(message.error);
                     startAnswersPhase(message.remaining_time, message.question);
                     return;
                 }
 
                 if (message.type === 'vote_phase_started') {
                     startVotePhase(message.remaining_time, message.answered_questions);
+                    return;
+                }
+
+                if (message.type === 'vote_error') {
+                    showAlert(message.error);
+                    clearVotedAnswer();
                     return;
                 }
 
@@ -124,6 +134,13 @@
                     'type': 'answer',
                     'text': answer
                 }));
+            }
+
+            function sendVote(answerId) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'vote',
+                    'answer_id': answerId
+                }))
             }
         }
 
@@ -183,22 +200,43 @@
                 const votePhaseDiv = document.querySelector('#votePhase');
                 answeredQuestions.forEach((answeredQuestion) => {
                     const voteCard = document.querySelector('#voteCardTemplate > div').cloneNode(true);
+                    voteCard.id = 'answer_' + answeredQuestion.answer_id;
                     voteCard.querySelector('#questionText').innerText = answeredQuestion.question;
                     voteCard.querySelector('#answerText').innerText = answeredQuestion.answer;
+                    voteCard.setAttribute('answerId', answeredQuestion.answer_id);
                     voteCard.addEventListener('click', function () {
-                        if (voteCard.getAttribute('disabled')) {
+                        if (this.getAttribute('disabled')) {
                             return;
                         }
 
-                        alert(answeredQuestion.answer_id);
+                        clearVotedAnswer();
+                        setVotedAnswer(this.getAttribute('answerId'));
+                        sendVote(this.getAttribute('answerId'));
                     });
+
                     votePhaseDiv.append(voteCard);
+
+                    if (answeredQuestion.voted) {
+                        setVotedAnswer(answeredQuestion.answer_id)
+                    }
                 });
 
                 document.querySelector('#spinner').classList.add('d-none');
                 document.querySelectorAll('.game-phase').forEach((element) => { element.classList.add('d-none') });
                 votePhaseDiv.classList.remove('d-none')
                 timer(remaining_time, document.querySelector('#votePhase #timer'));
+            }
+
+            function setVotedAnswer(answerId) {
+                document.querySelector('#answer_' + answerId).querySelector('.card').classList.add('bg-primary', 'text-light');
+            }
+
+            function clearVotedAnswer() {
+                document.querySelectorAll('.vote-card').forEach((elem) => {
+                    const card = elem.querySelector('.card');
+                    card.classList.remove('bg-primary', 'text-light');
+                });
+
             }
 
             document.querySelector('#votePhase #timer').addEventListener('timeout', function () {
@@ -217,6 +255,13 @@
             }
 
             setTimeout(timer, 1000, remainingSeconds - 1, targetElement);
+        }
+
+        function showAlert(message) {
+            const toastElement = document.querySelector('#toast');
+            toastElement.querySelector('#message').innerText = message;
+            const toast = bootstrap.Toast.getOrCreateInstance(toastElement);
+            toast.show();
         }
     </script>
 {% endblock %}

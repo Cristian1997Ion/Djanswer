@@ -2,10 +2,12 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import Q
 from django.db import connection
-from game.models import Player, Room, Round, Answer, Question, answer
+from game.models import Player, Room, Round, Answer, Question, answer, player
 from channels.db import database_sync_to_async
 from django.db.models import Prefetch
+from django.db import connection
 from game.models.question import Question
+from game.models.vote import Vote
 import game.socket_consumers.utils as socket_utils
 
 class RoomGameConsumer(AsyncWebsocketConsumer):
@@ -47,7 +49,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         if data['type'] == 'question':
             try:
-                await self.question_submited(data['text']); 
+                await self.submit_question(data['text']); 
             except:
                 await self.send(text_data=json.dumps({
                     'type': 'question_error',
@@ -59,7 +61,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         
         if data['type'] == 'answer':
             try:
-                await self.answer_submited(data['text'])
+                await self.submit_answer(data['text'])
             except:
                 question: Question = await database_sync_to_async(self.get_assigned_question)()
                 await self.send(text_data=json.dumps({
@@ -70,6 +72,20 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
                 }))
             finally:
                 return
+        
+        if data['type'] == 'vote':
+            try:
+                await self.submit_vote(data['answer_id'])
+            except Exception as e:
+                print(e)
+                await self.send(text_data=json.dumps({
+                    'type': 'vote_error',
+                    'error': 'An error occured while submiting your vote, please try again!',
+                }))
+            finally:
+                return
+            
+            return
             
         
     async def determine_phase(self):
@@ -105,7 +121,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         }))
     
     @database_sync_to_async
-    def question_submited(self, question):
+    def submit_question(self, question):
         self.current_round.refresh_from_db()
         if self.current_round.questions_phase_started_at is None:
             return
@@ -141,7 +157,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         return self.current_round.question_set.filter(respondent=self.player).first()
     
     @database_sync_to_async
-    def answer_submited(self, answer):
+    def submit_answer(self, answer):
         if self.current_round.answers_phase_started_at is None:
             return
         
@@ -176,6 +192,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
             self.current_round
             .question_set
             .select_related('answer')
+            .prefetch_related('answer__vote_set')
             .filter(~Q(respondent=self.player), ~Q(author=self.player))
             .all()
         )    
@@ -185,7 +202,19 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
             vote_questions.append({
                 'question': question.text,
                 'answer': question.answer.text,
-                'answer_id': question.answer.pk
+                'answer_id': question.answer.pk,
+                'voted': question.answer.vote_set.filter(player=self.player).exists()
             })
 
         return vote_questions
+    
+    @database_sync_to_async
+    def submit_vote(self, answerId):
+        Vote.objects.filter(answer__question__round=self.current_round, player=self.player).delete()
+        for query in connection.queries:
+            print(query)
+        
+        Vote(
+            answer_id=answerId,
+            player=self.player
+        ).save()
