@@ -42,7 +42,7 @@ class RoomLobbyConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        if data['type'] == 'connected':
+        if data['type'] == 'connect':
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {

@@ -69,7 +69,7 @@
             const chatSocket = new WebSocket(socketUrl);
             chatSocket.onopen = function () {
                 chatSocket.send(JSON.stringify({
-                    'type': 'connected'
+                    'type': 'connect'
                 }));
             }
 
