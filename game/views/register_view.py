@@ -23,7 +23,6 @@ def register(request: HttpRequest, mailer: Mailer = Provide[Container.mailer]):
 
             return redirect('login')
         else:
-            print(register_form.errors)
             return render(request, 'register.html', {'errors': register_form.errors.items()})
 
     return render(request, 'register.html')
