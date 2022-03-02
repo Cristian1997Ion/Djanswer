@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 class Room(models.Model):
     MAX_PLAYERS: Final = 12
-    ROUNDS_NUMBER: Final = 5
+    ROUNDS_NUMBER: Final = 3
 
     code = models.CharField(
         max_length=6,
