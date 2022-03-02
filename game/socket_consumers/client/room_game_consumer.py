@@ -1,14 +1,10 @@
 import json
+import game.socket_consumers.utils as socket_utils
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import Q
-from django.db import connection
-from game.models import Player, Room, Round, Answer, Question, answer, player
+from game.models import Player, Room, Round, Answer, Question, Vote
 from channels.db import database_sync_to_async
 from django.db.models import Prefetch
-from django.db import connection
-from game.models.question import Question
-from game.models.vote import Vote
-import game.socket_consumers.utils as socket_utils
 
 class RoomGameConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
@@ -145,6 +141,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         return self.current_round.question_set.filter(author=self.player).exists()
     
     async def answers_phase_started(self, event):
+        await self.refresh_current_round()
         question: Question = await database_sync_to_async(self.get_assigned_question)()
         await self.send(text_data=json.dumps({
             'type': event['type'],
@@ -153,7 +150,6 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         }))
         
     def get_assigned_question(self):
-        self.current_round.refresh_from_db()
         return self.current_round.question_set.filter(respondent=self.player).first()
     
     @database_sync_to_async
@@ -180,6 +176,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         return self.current_round.question_set.filter(answer__player=self.player).exists()
     
     async def vote_phase_started(self, event):
+        await self.refresh_current_round()
         await self.send(text_data=json.dumps({
             'type': event['type'],
             'remaining_time': self.current_round.get_vote_phase_remaining_time(),
@@ -211,10 +208,19 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def submit_vote(self, answerId):
         Vote.objects.filter(answer__question__round=self.current_round, player=self.player).delete()
-        for query in connection.queries:
-            print(query)
         
         Vote(
             answer_id=answerId,
             player=self.player
         ).save()
+    
+    async def round_ended(self, event):
+        await self.refresh_current_round()
+        await self.send(text_data=json.dumps({
+            'type': event['type'],
+            'graph': event['graph']
+        }))
+    
+    @database_sync_to_async
+    def refresh_current_round(self):
+        self.current_round.refresh_from_db()

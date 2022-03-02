@@ -46,6 +46,11 @@
     <div class="row mb-3 game-phase d-none justify-content-center" id="votePhase">
         <div class="col-md-12 text-center text-light h2">Vote your favorite! <span id="timer" class="badge bg-danger fs-5"></span></div>
     </div>
+    <div class="row mb-3 game-phase d-none justify-content-center" id="roundSummary">
+        <div class="col-md-12 text-center text-light h2">Round Summary</div>
+        <img alt="graphic" class="col-md-6">    
+    </div>
+
 
     <div id="voteCardTemplate" class="d-none">
         <div class="vote-card col-md-4 m-1 h-100">
@@ -113,6 +118,11 @@
                 if (message.type === 'vote_error') {
                     showAlert(message.error);
                     clearVotedAnswer();
+                    return;
+                }
+
+                if (message.type === 'round_ended') {
+                    showRoundSummary(message.graph);
                     return;
                 }
 
@@ -197,6 +207,7 @@
 
         {// vote phase
             function startVotePhase(remaining_time, answeredQuestions) {
+                document.querySelectorAll('#votePhase .vote-card')?.forEach((elem) => { elem.remove(); })
                 const votePhaseDiv = document.querySelector('#votePhase');
                 answeredQuestions.forEach((answeredQuestion) => {
                     const voteCard = document.querySelector('#voteCardTemplate > div').cloneNode(true);
@@ -244,6 +255,13 @@
             });
         }
         
+        function showRoundSummary(graphImage) {
+            document.querySelectorAll('.game-phase').forEach((element) => {element.classList.add('d-none')});
+            const roundSummary = document.querySelector('#roundSummary');
+            roundSummary.classList.remove('d-none');
+            roundSummary.querySelector('img').src = 'data:image/png;base64,' + graphImage;
+        }
+
         function timer(remainingSeconds, targetElement) {
             remainingSeconds = remainingSeconds > 0 ? remainingSeconds : 0;
             targetElement.innerText = remainingSeconds;

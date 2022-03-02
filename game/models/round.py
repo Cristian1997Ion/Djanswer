@@ -5,7 +5,7 @@ from django.db import models
 
 from game.utils import get_remaining_time
 if TYPE_CHECKING:
-    from . import Question
+    from . import Question, Room
     from django.db.models.manager import RelatedManager
 
 
@@ -19,7 +19,7 @@ class Round(models.Model):
     vote_phase_started_at = models.DateTimeField(default=None, null=True)
     ended = models.BooleanField(default=False)
     
-    room = models.ForeignKey(to='Room', on_delete=models.CASCADE)
+    room: 'Room' = models.ForeignKey(to='Room', on_delete=models.CASCADE)
     question_set: 'RelatedManager[Question]'
     
     def get_questions_phase_remaining_time(self):
