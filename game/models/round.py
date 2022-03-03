@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class Round(models.Model):
     QUESTIONS_PHASE_DURATION = 30
     ANSWERS_PHASE_DURATION = 30
-    VOTE_PHASE_DURATION = 45
+    VOTE_PHASE_DURATION = 30
     
     questions_phase_started_at = models.DateTimeField(default=None, null=True)
     answers_phase_started_at = models.DateTimeField(default=None, null=True)

@@ -11,6 +11,7 @@ from base64 import b64encode
 
 
 from game.models import Room, Round, Question, Answer
+from game.models.vote import Vote
 from game.socket_consumers.utils import get_game_channel_name
 from game.loggers import RoomLoggerBuilder
 from game.containers import Container 
@@ -27,7 +28,7 @@ class GameEngine(threading.Thread):
         self.scoreboard = Scoreboard()
         
     def run(self):
-        try:
+       # try:
             while self.current_round is not None:
                 print('questions')
                 self.__question_phase()
@@ -37,12 +38,11 @@ class GameEngine(threading.Thread):
                 self.__vote_phase()
                 print('summary')
                 self.__round_summary()
-                return
                 self.current_round = self.room.get_current_round()
             
             async_to_sync(self.channel_layer.group_send)(self.room_group_name, {"type": "game_ended", "winner": self.__determine_winner() })
-        except Exception as exception:
-             self.logger.error(exception)
+        #except Exception as exception:
+        #     self.logger.error(exception)
     
     def __question_phase(self):
         self.logger.info("STARTED QUESTIONS PHASE")
@@ -105,7 +105,7 @@ class GameEngine(threading.Thread):
             "overall_graphic": self.__create_bar_graphic(self.scoreboard.get_overall_scores())
         })
 
-        time.sleep(30)
+        time.sleep(5)
         
     def __create_bar_graphic(self, data: dict):
         room_fig: Figure = pyplot.figure()
@@ -150,6 +150,7 @@ class Scoreboard():
     
     def update_round_scores(self, round: Round):
         self._scoreboard[round.pk] = {player.username:0 for player in round.room.player_set.all()}
+        
         round_questions = (
             round.question_set
             .select_related("answer")
@@ -157,14 +158,17 @@ class Scoreboard():
             .all()
         )
         
-        for question in round_questions:
-            for vote in question.answer.vote_set.all():
-                self._scoreboard[round.pk][round.room.player_set.get(pk=vote.answer.player_id).username] += 2
-                self._scoreboard[round.pk][round.room.player_set.get(pk=vote.answer.question.author_id).username] += 1
+        
+        answers_votes = {question.answer.pk: question.answer.vote_set.count() for question in round_questions}
+        most_voted_answer_pk = max(answers_votes, key=answers_votes.get)
+        
+        most_voted_answer = round_questions.get(answer__pk=most_voted_answer_pk).answer
+        self._scoreboard[round.pk][round.room.player_set.get(pk=most_voted_answer.player_id).username] += 2
+        self._scoreboard[round.pk][round.room.player_set.get(pk=most_voted_answer.question.author_id).username] += 1
                 
     def __sort_scores(self, scores: dict):
         return {
-            player_name: player_score for player_name, player_score in sorted(scores.items(), key=lambda item: item[1])
+            player_name: player_score for player_name, player_score in sorted(scores.items(), key=lambda item: item[1], reverse=True)
         }
     
     

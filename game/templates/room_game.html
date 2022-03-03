@@ -59,6 +59,16 @@
         </div>
     </div>
 
+    <div class="game-phase d-none position-absolute h-100 w-100 bg-black top-0 start-0 overflow-hidden" id="gameOver">
+        <h1 class="text-center text-light" style="margin-top: 40vh;">
+            And the winner is... 
+            <span id="winner" class="text-flicker-in-glow fw-bold" style="color: gold;">someone</span> !
+        </h1>
+        <div id="fireworks">
+            <div class="before"></div>
+            <div class="after"></div>
+        </div>
+    </div>
 
     <div id="voteCardTemplate" class="d-none">
         <div class="vote-card col-md-4 m-1 h-100">
@@ -142,6 +152,11 @@
                     return;
                 }
 
+                if (message.type === 'game_ended') {
+                    showWinner(message.winner);
+                    return;
+                }
+
             };
 
             chatSocket.onclose = function(e) {
@@ -175,6 +190,7 @@
                 document.querySelector('#spinner').classList.add('d-none');
                 document.querySelectorAll('.game-phase').forEach((element) => {element.classList.add('d-none')});
                 document.querySelector('#questionsPhase').classList.remove('d-none');
+                document.querySelector('#submitQuestionButton').disabled = false;
                 timer(remaining_time, document.querySelector('#questionsPhase #timer'));
             }
 
@@ -201,6 +217,7 @@
                 document.querySelectorAll('.game-phase').forEach((element) => {element.classList.add('d-none')});
                 document.querySelector('#answersPhase').classList.remove('d-none');
                 document.querySelector('#answersPhase #questionText').innerText = question
+                document.querySelector('#submitAnswerButton').disabled = false;
                 timer(remaining_time, document.querySelector('#answersPhase #timer'));
             }
 
@@ -267,7 +284,7 @@
             }
 
             document.querySelector('#votePhase #timer').addEventListener('timeout', function () {
-                document.querySelectorAll('.vote-card').forEach((elem) => { elem.setAttribute('disabled', true); })
+                document.querySelectorAll('#votePhase .vote-card').forEach((elem) => { elem.setAttribute('disabled', true); })
             });
         }
         
@@ -276,7 +293,20 @@
             const roundSummary = document.querySelector('#roundSummary');
             roundSummary.classList.remove('d-none');
             roundSummary.querySelector('#roundGraphic').src = 'data:image/png;base64,' + roundGraphic;
-            roundSummary.querySelector('#overallGraphic').src = 'data:image/png;base64,' + roundGraphic;
+            roundSummary.querySelector('#overallGraphic').src = 'data:image/png;base64,' + overallGraphic;
+        }
+
+        function showWinner(winner) {
+            document.querySelectorAll('.game-phase').forEach((element) => {element.classList.add('d-none')});
+            const gameOverScreen = document.querySelector('#gameOver');
+            const winnerSpan = gameOverScreen.querySelector('#winner');
+            const fireworks = gameOverScreen.querySelector('#fireworks');
+
+            gameOverScreen.classList.remove('d-none');
+            winnerSpan.innerText = winner;
+            winnerSpan.classList.add('text-flicker-in-glow');
+            fireworks.classList.add('pyro');
+
         }
 
         function timer(remainingSeconds, targetElement) {
