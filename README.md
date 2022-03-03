@@ -24,3 +24,4 @@ The player with the most points win!
 ![vote](https://user-images.githubusercontent.com/72604028/156608158-a98500f0-19a3-4db7-95d0-1d13ec5c21e2.png)
 
 ![round summary](https://user-images.githubusercontent.com/72604028/156608170-2d9784cd-e8c3-4081-83d3-61fdb38b8e48.png)
+![winner](https://user-images.githubusercontent.com/72604028/156608295-e548b588-769e-4b86-a746-0590fa3893d7.png)
