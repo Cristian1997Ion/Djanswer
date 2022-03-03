@@ -22,7 +22,7 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         if self.room.code != self.room_code:
             raise Exception
         
-        self.current_round = self.room.current_round
+        self.current_round = self.room.get_current_round()
 
     async def connect(self):
         await self.initialize()
@@ -93,16 +93,10 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
             return
         
         if self.current_round.answers_phase_started_at is not None:
-            if await database_sync_to_async(self.already_answered)():
-                #return
-                pass
             await self.answers_phase_started({'type': 'answers_phase_started'})
             return
         
         if self.current_round.questions_phase_started_at is not None:
-            if await database_sync_to_async(self.already_submited_question)():
-                return
-            
             await self.questions_phase_started({
                 'type': 'questions_phase_started',
                 'remaining_time': self.current_round.get_questions_phase_remaining_time()
@@ -111,6 +105,9 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
             return
         
     async def questions_phase_started(self, event):
+        if await database_sync_to_async(self.already_submited_question)():
+            return
+    
         await self.send(text_data=json.dumps({
             'type': event['type'],
             'remaining_time': self.current_round.get_questions_phase_remaining_time()
@@ -141,6 +138,9 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         return self.current_round.question_set.filter(author=self.player).exists()
     
     async def answers_phase_started(self, event):
+        if await database_sync_to_async(self.already_answered)():
+            return
+
         await self.refresh_current_round()
         question: Question = await database_sync_to_async(self.get_assigned_question)()
         await self.send(text_data=json.dumps({
@@ -186,11 +186,10 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_vote_questions(self):
         questions = (
-            self.current_round
-            .question_set
+            Question.objects
             .select_related('answer')
             .prefetch_related('answer__vote_set')
-            .filter(~Q(respondent=self.player), ~Q(author=self.player))
+            .filter(~Q(respondent=self.player), ~Q(author=self.player), round=self.current_round)
             .all()
         )    
         
@@ -215,10 +214,10 @@ class RoomGameConsumer(AsyncWebsocketConsumer):
         ).save()
     
     async def round_ended(self, event):
-        await self.refresh_current_round()
         await self.send(text_data=json.dumps({
             'type': event['type'],
-            'graph': event['graph']
+            'round_graphic': event['round_graphic'],
+            'overall_graphic': event['overall_graphic']
         }))
     
     @database_sync_to_async

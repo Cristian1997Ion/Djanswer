@@ -46,9 +46,17 @@
     <div class="row mb-3 game-phase d-none justify-content-center" id="votePhase">
         <div class="col-md-12 text-center text-light h2">Vote your favorite! <span id="timer" class="badge bg-danger fs-5"></span></div>
     </div>
-    <div class="row mb-3 game-phase d-none justify-content-center" id="roundSummary">
-        <div class="col-md-12 text-center text-light h2">Round Summary</div>
-        <img alt="graphic" class="col-md-6">    
+    <div class="row mb-3 game-phase d-none justify-content-evenly" id="roundSummary">
+        <div class="col-md-5 site-color-dark graphic-box">
+            <div class="text-center text-light h2">Round</div>
+            <hr class="text-light">
+            <img alt="round graphic" class="w-100" id="roundGraphic">    
+        </div>
+        <div class="col-md-5 site-color-dark graphic-box mt-md-1">
+            <div class="text-center text-light h2">Overall</div>
+            <hr class="text-light">
+            <img alt="overall graphic" class="w-100" id="overallGraphic">    
+        </div>
     </div>
 
 
@@ -64,6 +72,14 @@
             </div>
         </div>
     </div>
+
+    <style>
+        .graphic-box {
+            box-shadow: 0 0 15px;
+            border: 1px solid black;
+            border-radius: 5px;
+        }
+    </style>
 
     <script>
         const roomCode = '{{ room.code }}';
@@ -122,7 +138,7 @@
                 }
 
                 if (message.type === 'round_ended') {
-                    showRoundSummary(message.graph);
+                    showRoundSummary(message.round_graphic, message.overall_graphic);
                     return;
                 }
 
@@ -255,11 +271,12 @@
             });
         }
         
-        function showRoundSummary(graphImage) {
+        function showRoundSummary(roundGraphic, overallGraphic) {
             document.querySelectorAll('.game-phase').forEach((element) => {element.classList.add('d-none')});
             const roundSummary = document.querySelector('#roundSummary');
             roundSummary.classList.remove('d-none');
-            roundSummary.querySelector('img').src = 'data:image/png;base64,' + graphImage;
+            roundSummary.querySelector('#roundGraphic').src = 'data:image/png;base64,' + roundGraphic;
+            roundSummary.querySelector('#overallGraphic').src = 'data:image/png;base64,' + roundGraphic;
         }
 
         function timer(remainingSeconds, targetElement) {

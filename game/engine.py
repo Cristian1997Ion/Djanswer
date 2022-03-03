@@ -4,17 +4,16 @@ from django.utils.timezone import now
 from channels.layers import get_channel_layer
 from dependency_injector.wiring import inject, Provide
 from matplotlib import pyplot
+from matplotlib.figure import Figure
 from io import BytesIO
 from random import shuffle
 from base64 import b64encode
+
 
 from game.models import Room, Round, Question, Answer
 from game.socket_consumers.utils import get_game_channel_name
 from game.loggers import RoomLoggerBuilder
 from game.containers import Container 
-
-
-from django.db import connection  
 
 class GameEngine(threading.Thread):
     @inject
@@ -22,10 +21,10 @@ class GameEngine(threading.Thread):
         super(GameEngine, self).__init__(daemon=True, name="GameEngine", **kwargs)
         self.room: Room = Room.objects.prefetch_related("round_set", "player_set").get(pk=room_id)
         self.room_group_name = get_game_channel_name(self.room.code)
-        self.current_round = self.room.current_round
+        self.current_round = self.room.get_current_round()
         self.channel_layer = get_channel_layer()
         self.logger: logging.Logger = room_logger_builder.build(room_id)
-        self.scoreboard = {}
+        self.scoreboard = Scoreboard()
         
     def run(self):
         try:
@@ -37,12 +36,13 @@ class GameEngine(threading.Thread):
                 print('votes')
                 self.__vote_phase()
                 print('summary')
+                self.__round_summary()
                 return
-                self.current_round = self.room.current_round
+                self.current_round = self.room.get_current_round()
             
-            async_to_sync(self.channel_layer.group_send)(self.room_group_name, {"type": "game_ended", "winner": self.determine_winner() })
+            async_to_sync(self.channel_layer.group_send)(self.room_group_name, {"type": "game_ended", "winner": self.__determine_winner() })
         except Exception as exception:
-            self.logger.error(exception)
+             self.logger.error(exception)
     
     def __question_phase(self):
         self.logger.info("STARTED QUESTIONS PHASE")
@@ -92,11 +92,66 @@ class GameEngine(threading.Thread):
         self.current_round.save()
         
         async_to_sync(self.channel_layer.group_send)(self.room_group_name, {"type": "vote_phase_started"})
-        time.sleep(Round.VOTE_PHASE_DURATION)
+        time.sleep(Round.VOTE_PHASE_DURATION)        
+        self.scoreboard.update_round_scores(self.current_round)
         
-        self.scoreboard[self.current_round.pk] = {player.username:0 for player in self.room.player_set.all()}
+    def __round_summary(self):
+        self.current_round.ended = True
+        self.current_round.save()
+        
+        async_to_sync(self.channel_layer.group_send)(self.room_group_name, {
+            "type": "round_ended",
+            "round_graphic": self.__create_bar_graphic(self.scoreboard.get_round_scores(self.current_round)),
+            "overall_graphic": self.__create_bar_graphic(self.scoreboard.get_overall_scores())
+        })
+
+        time.sleep(30)
+        
+    def __create_bar_graphic(self, data: dict):
+        room_fig: Figure = pyplot.figure()
+        axes = room_fig.add_axes([0,0,1,1])
+        axes.xaxis.label.set_color('white')
+        axes.yaxis.label.set_color('white')
+        axes.tick_params(axis='x', colors='white')
+        axes.tick_params(axis='y', colors='white')
+        axes.spines['left'].set_color('white')
+        axes.spines['right'].set_color('white')
+        axes.spines['top'].set_color('white')
+        axes.spines['bottom'].set_color('white')
+        container = axes.bar(data.keys(), data.values(), color="white")
+        axes.bar_label(container, color="white")
+        
+        buffer = BytesIO()
+        room_fig.savefig(buffer, dpi=300, bbox_inches="tight", transparent=True, format="png")
+        buffer.seek(0)
+
+        return urllib.parse.quote(b64encode(buffer.read()).decode())
+        
+    def __determine_winner(self) -> str:
+        return next(iter(self.scoreboard.get_overall_scores()))
+    
+class Scoreboard():
+    _scoreboard = {}
+    
+    def get_round_scores(self, round: Round) -> dict:
+        return self.__sort_scores(self._scoreboard[round.pk])
+    
+    def get_overall_scores(self) -> dict:
+        players_scores = {}
+        for round_scores in self._scoreboard.values():
+            round_scores: dict
+            for player_name, player_score in round_scores.items():
+                if not players_scores.get(player_name, False):
+                    players_scores[player_name] = 0
+
+                players_scores[player_name] += player_score
+        
+        return self.__sort_scores(players_scores)
+    
+    def update_round_scores(self, round: Round):
+        self._scoreboard[round.pk] = {player.username:0 for player in round.room.player_set.all()}
         round_questions = (
-            self.current_round.question_set
+            round.question_set
             .select_related("answer")
             .prefetch_related("answer__vote_set")
             .all()
@@ -104,44 +159,12 @@ class GameEngine(threading.Thread):
         
         for question in round_questions:
             for vote in question.answer.vote_set.all():
-                self.scoreboard[self.current_round.pk][self.room.player_set.get(pk=vote.answer.player_id).username] += 2
-                self.scoreboard[self.current_round.pk][self.room.player_set.get(pk=vote.answer.question.author_id).username] += 1
-        
-        for query in connection.queries:
-            self.logger.info(query)
-        
-        self.current_round.ended = True
-        self.current_round.save()
-        
-        players_names  = []
-        players_scores = []
-        current_round_scores: dict = self.scoreboard[self.current_round.pk]
-        for player_name, player_score in current_round_scores.items():
-            players_names.append(player_name)
-            players_scores.append(player_score)
-        
-        async_to_sync(self.channel_layer.group_send)(self.room_group_name, {
-            "type": "round_ended",
-            "graph": self.create_bar_graphic(players_names, players_scores)
-        })
-
-        time.sleep(30)
-        
-    def create_bar_graphic(self, x_axis_data, y_axis_data):
-        room_fig = pyplot.figure()
-        axes = room_fig.add_axes([0,0,1,1])
-        axes.bar(x_axis_data, y_axis_data)
-        buffer = BytesIO()
-        room_fig.savefig(buffer, dpi=300, bbox_inches='tight')
-        buffer.seek(0)
-
-        return urllib.parse.quote(b64encode(buffer.read()).decode())
-        
-    def determine_winner(self):
-        player_scores = {player.username:0 for player in self.room.player_set.all()}
-        for round_scores in self.scoreboard.values():
-            round_scores: dict
-            for player_name, player_score in round_scores.items():
-                player_scores[player_name] += player_score
-        
-        return max(player_scores, key=player_scores.get)
+                self._scoreboard[round.pk][round.room.player_set.get(pk=vote.answer.player_id).username] += 2
+                self._scoreboard[round.pk][round.room.player_set.get(pk=vote.answer.question.author_id).username] += 1
+                
+    def __sort_scores(self, scores: dict):
+        return {
+            player_name: player_score for player_name, player_score in sorted(scores.items(), key=lambda item: item[1])
+        }
+    
+    

@@ -26,6 +26,5 @@ class Room(models.Model):
     round_set: 'RelatedManager[Round]'
     player_set: 'RelatedManager[Player]'
     
-    @property
-    def current_round(self) -> 'Round|None':
+    def get_current_round(self) -> 'Round|None':
         return self.round_set.filter(ended=False).order_by('id').first()
